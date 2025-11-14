@@ -1,0 +1,34 @@
+# Node modules (if you add the backend server)
+node_modules/
+package-lock.json
+
+# Environment variables (never commit sensitive data)
+.env
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Chrome extension development
+*.pem
+*.crx
+*.zip
+
+# Temporary files
+tmp/
+temp/

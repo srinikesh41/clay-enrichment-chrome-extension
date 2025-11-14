@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clay Enrichment Tool</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Clay Enrichment Tool</h1>
+
+    <div class="url-section">
+      <label for="current-url">Current URL:</label>
+      <div id="current-url" class="url-display">Loading...</div>
+    </div>
+
+    <div class="workflow-section">
+      <label for="workflow-select">Select Workflow:</label>
+      <select id="workflow-select">
+        <option value="">-- Choose a workflow --</option>
+        <option value="get_contact_info">Get contact info</option>
+        <option value="do_account_research">Do account research</option>
+        <option value="do_lead_research">Do lead research</option>
+      </select>
+    </div>
+
+    <div class="action-section">
+      <button id="send-btn" disabled>Send to Clay</button>
+    </div>
+
+    <div id="status-message" class="status-message hidden"></div>
+
+    <div id="results-container" class="results-container hidden">
+      <h3>Enriched Data:</h3>
+      <div id="results-content"></div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
