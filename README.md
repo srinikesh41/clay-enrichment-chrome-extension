@@ -2,6 +2,19 @@
 
 A Chrome extension that captures URLs and enriches them with Clay data via Zapier.
 
+## 🚀 Getting Started
+
+**New here? Start with these files in order:**
+
+1. **STATUS.md** ⭐ - Check current progress and what to do next
+2. **IMPLEMENTATION_GUIDE.md** ⭐ - Complete step-by-step implementation (phases 1-7)
+3. **QUICK_START.md** - Quick reference guide
+4. **README.md** (this file) - Full documentation
+
+**Current Status:** Extension is loaded and working. Next step is to test the popup and configure Zapier.
+
+---
+
 ## Features
 
 - Auto-captures current tab URL

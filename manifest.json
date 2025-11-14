@@ -5,7 +5,8 @@
   "description": "Capture URLs and enrich them with Clay data via Zapier",
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "storage"
   ],
   "host_permissions": [
     "<all_urls>"
