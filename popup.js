@@ -1,5 +1,5 @@
 // Configuration - UPDATE THIS WITH YOUR ZAPIER WEBHOOK URL
-const ZAPIER_WEBHOOK_URL = 'YOUR_ZAPIER_WEBHOOK_URL_HERE';
+const ZAPIER_WEBHOOK_URL = 'https://hooks.zapier.com/hooks/catch/25374513/u8gi8nv/';
 const REQUEST_TIMEOUT = 30000; // 30 seconds
 
 // DOM elements
