@@ -1,5 +1,5 @@
-// Configuration - UPDATE THIS WITH YOUR ZAPIER WEBHOOK URL
-const ZAPIER_WEBHOOK_URL = 'https://hooks.zapier.com/hooks/catch/25374513/u8gi8nv/';
+// Configuration - Clay webhook URL
+const CLAY_WEBHOOK_URL = 'https://api.clay.com/v3/sources/webhook/pull-in-data-from-a-webhook-44b82f58-53da-4941-85fd-630f785f594d';
 const REQUEST_TIMEOUT = 30000; // 30 seconds
 
 // DOM elements
@@ -77,11 +77,7 @@ async function handleSendClick() {
     return;
   }
 
-  // Validate Zapier webhook URL is configured
-  if (ZAPIER_WEBHOOK_URL === 'YOUR_ZAPIER_WEBHOOK_URL_HERE') {
-    showStatus('error', 'Please configure ZAPIER_WEBHOOK_URL in popup.js');
-    return;
-  }
+  // No validation needed - Clay URL is hardcoded
 
   // Generate unique request ID for this request
   requestId = Date.now().toString();
@@ -100,8 +96,8 @@ async function handleSendClick() {
   };
 
   try {
-    // Send to Zapier webhook
-    const response = await fetch(ZAPIER_WEBHOOK_URL, {
+    // Send to Clay webhook
+    const response = await fetch(CLAY_WEBHOOK_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -110,23 +106,17 @@ async function handleSendClick() {
     });
 
     if (!response.ok) {
-      throw new Error(`Zapier webhook returned status ${response.status}`);
+      throw new Error(`Clay webhook returned status ${response.status}`);
     }
 
-    // Successfully sent to Zapier
-    showStatus('loading', 'Request sent! Waiting for enriched data...');
+    // Successfully sent to Clay
+    showStatus('success', 'Data sent to Clay successfully!');
 
-    // Set timeout for response
-    setTimeout(() => {
-      if (requestId === payload.requestId) {
-        setLoadingState(false);
-        showStatus('error', 'Request timed out. No response received within 30 seconds.');
-        addRetryButton();
-      }
-    }, REQUEST_TIMEOUT);
+    // Done sending - no timeout needed for now
+    setLoadingState(false);
 
   } catch (error) {
-    console.error('Error sending to Zapier:', error);
+    console.error('Error sending to Clay:', error);
     setLoadingState(false);
     showStatus('error', `Failed to send request: ${error.message}`);
     addRetryButton();
