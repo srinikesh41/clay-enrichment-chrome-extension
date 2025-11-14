@@ -1,6 +1,11 @@
-// Configuration - Clay webhook URL
+// Configuration
 const CLAY_WEBHOOK_URL = 'https://api.clay.com/v3/sources/webhook/pull-in-data-from-a-webhook-44b82f58-53da-4941-85fd-630f785f594d';
-const REQUEST_TIMEOUT = 30000; // 30 seconds
+const SUPABASE_URL = 'https://zknyztmngccsxdtiddvz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inprbnl6dG1uZ2Njc3hkdGlkZHZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMxMjYyMDUsImV4cCI6MjA3ODcwMjIwNX0.sV11EDMAVx0hLRNYAwvYvtkjNbMAuijPmoP8QAa2tTo';
+const REQUEST_TIMEOUT = 120000; // 2 minutes
+
+// Initialize Supabase client
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // DOM elements
 let currentUrlElement;
@@ -31,9 +36,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Set up event listeners
   workflowSelect.addEventListener('change', handleWorkflowChange);
   sendBtn.addEventListener('click', handleSendClick);
-
-  // Listen for messages from background worker
-  chrome.runtime.onMessage.addListener(handleBackgroundMessage);
 });
 
 // Get the current tab's URL
@@ -48,7 +50,6 @@ async function getCurrentTabUrl() {
       showStatus('error', 'Could not access current tab URL');
     }
   } catch (error) {
-    console.error('Error getting tab URL:', error);
     currentUrlElement.textContent = 'Error loading URL';
     showStatus('error', 'Failed to get current URL');
   }
@@ -77,17 +78,11 @@ async function handleSendClick() {
     return;
   }
 
-  // No validation needed - Clay URL is hardcoded
-
-  // Generate unique request ID for this request
   requestId = Date.now().toString();
-
-  // Update UI to loading state
   setLoadingState(true);
-  showStatus('loading', 'Sending to Zapier...');
+  showStatus('loading', 'Sending to Clay...');
   hideResults();
 
-  // Prepare payload
   const payload = {
     url: currentUrl,
     workflow: currentWorkflow,
@@ -96,7 +91,6 @@ async function handleSendClick() {
   };
 
   try {
-    // Send to Clay webhook
     const response = await fetch(CLAY_WEBHOOK_URL, {
       method: 'POST',
       headers: {
@@ -109,41 +103,58 @@ async function handleSendClick() {
       throw new Error(`Clay webhook returned status ${response.status}`);
     }
 
-    // Successfully sent to Clay
-    showStatus('success', 'Data sent to Clay successfully!');
-
-    // Done sending - no timeout needed for now
-    setLoadingState(false);
+    showStatus('loading', 'Sent to Clay! Waiting for enriched data...');
+    subscribeToEnrichedData(requestId);
 
   } catch (error) {
-    console.error('Error sending to Clay:', error);
     setLoadingState(false);
     showStatus('error', `Failed to send request: ${error.message}`);
     addRetryButton();
   }
 }
 
-// Handle messages from background service worker
-function handleBackgroundMessage(message, sender, sendResponse) {
-  console.log('Popup received message:', message);
+// Subscribe to Realtime updates from Supabase
+function subscribeToEnrichedData(requestId) {
+  let dataReceived = false;
 
-  if (message.type === 'ENRICHED_DATA') {
-    // Verify this is for our current request (basic validation)
-    setLoadingState(false);
-    requestId = null;
+  const channel = supabase
+    .channel(`enriched-data-${requestId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'enriched_data'
+      },
+      (payload) => {
+        if (payload.new && payload.new.request_id === requestId) {
+          if (dataReceived) return;
+          dataReceived = true;
 
-    if (message.data && typeof message.data === 'object') {
-      showStatus('success', 'Data received successfully!');
-      displayResults(message.data);
-    } else {
-      showStatus('error', 'Received invalid data format');
+          displayResults(payload.new);
+          setLoadingState(false);
+          showStatus('success', 'Enriched data received!');
+          channel.unsubscribe();
+        }
+      }
+    )
+    .subscribe((status, err) => {
+      if (err) {
+        showStatus('error', `Subscription error: ${err.message || err}`);
+      }
+      if (status === 'CHANNEL_ERROR') {
+        showStatus('error', 'Failed to subscribe to Realtime updates.');
+      }
+    });
+
+  setTimeout(() => {
+    channel.unsubscribe();
+    if (!dataReceived && sendBtn.classList.contains('loading')) {
+      setLoadingState(false);
+      showStatus('error', 'Request timed out. No enriched data received within 2 minutes.');
+      addRetryButton();
     }
-  } else if (message.type === 'ERROR') {
-    setLoadingState(false);
-    requestId = null;
-    showStatus('error', `Error: ${message.message || 'Unknown error occurred'}`);
-    addRetryButton();
-  }
+  }, REQUEST_TIMEOUT);
 }
 
 // Display enriched results
