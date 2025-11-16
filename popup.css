@@ -198,3 +198,133 @@ button.loading::after {
   color: #333;
   word-break: break-word;
 }
+
+/* Search History Styles */
+.history-container {
+  border-top: 1px solid #e0e0e0;
+  padding-top: 16px;
+  margin-top: 16px;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.history-header h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.clear-history-btn {
+  width: auto;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: #f44336;
+  color: white;
+}
+
+.clear-history-btn:hover:not(:disabled) {
+  background-color: #d32f2f;
+}
+
+.history-content {
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.no-history {
+  padding: 20px;
+  text-align: center;
+  color: #999;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.history-item {
+  background-color: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 10px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.history-item:hover {
+  border-color: #4CAF50;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.history-item:last-child {
+  margin-bottom: 0;
+}
+
+.history-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+
+.history-workflow {
+  font-weight: 600;
+  color: #4CAF50;
+  font-size: 13px;
+}
+
+.history-timestamp {
+  font-size: 11px;
+  color: #999;
+}
+
+.history-url {
+  font-size: 12px;
+  color: #555;
+  word-break: break-all;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.history-results {
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+  padding: 8px;
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+.history-results.collapsed {
+  display: none;
+}
+
+.history-result-item {
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.history-result-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.history-result-key {
+  font-weight: 600;
+  color: #666;
+  font-size: 11px;
+  margin-bottom: 2px;
+}
+
+.history-result-value {
+  color: #444;
+  font-size: 11px;
+  word-break: break-word;
+}

@@ -20,8 +20,9 @@
       <select id="workflow-select">
         <option value="">-- Choose a workflow --</option>
         <option value="get_contact_info">Get contact info</option>
-        <option value="do_account_research">Do account research</option>
-        <option value="do_lead_research">Do lead research</option>
+        <!-- Temporarily disabled - only contact info is working -->
+        <!-- <option value="do_account_research">Do account research</option>
+        <option value="do_lead_research">Do lead research</option> -->
       </select>
     </div>
 
@@ -34,6 +35,16 @@
     <div id="results-container" class="results-container hidden">
       <h3>Enriched Data:</h3>
       <div id="results-content"></div>
+    </div>
+
+    <div id="history-container" class="history-container">
+      <div class="history-header">
+        <h3>Search History</h3>
+        <button id="clear-history-btn" class="clear-history-btn">Clear All</button>
+      </div>
+      <div id="history-content" class="history-content">
+        <div class="no-history">No previous searches yet</div>
+      </div>
     </div>
   </div>
 
