@@ -8,6 +8,7 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // DOM elements
 let signinForm, signupForm, forgotPasswordForm;
 let signinBtn, signupBtn, resetBtn, backToSigninBtn;
+let googleSigninBtn, googleSignupBtn;
 let signinEmail, signinPassword;
 let signupEmail, signupPassword, signupConfirmPassword;
 let resetEmail;
@@ -25,6 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
   signupBtn = document.getElementById('signup-btn');
   resetBtn = document.getElementById('reset-btn');
   backToSigninBtn = document.getElementById('back-to-signin-btn');
+  googleSigninBtn = document.getElementById('google-signin-btn');
+  googleSignupBtn = document.getElementById('google-signup-btn');
 
   signinEmail = document.getElementById('signin-email');
   signinPassword = document.getElementById('signin-password');
@@ -107,6 +110,10 @@ function setupEventListeners() {
   resetEmail.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') handleResetPassword();
   });
+
+  // Google Sign In
+  googleSigninBtn.addEventListener('click', handleGoogleSignIn);
+  googleSignupBtn.addEventListener('click', handleGoogleSignIn);
 }
 
 // Check if user is already authenticated
@@ -246,6 +253,35 @@ async function handleSignUp() {
 
     showStatus('error', errorMessage);
     setLoadingState(signupBtn, false);
+  }
+}
+
+// Handle Google Sign In
+async function handleGoogleSignIn() {
+  // Set loading state
+  setLoadingState(googleSigninBtn, true);
+  setLoadingState(googleSignupBtn, true);
+  hideStatus();
+
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: chrome.runtime.getURL('popup.html'),
+        skipBrowserRedirect: false
+      }
+    });
+
+    if (error) throw error;
+
+    // OAuth will handle the redirect
+    // No need to manually save session here
+
+  } catch (error) {
+    console.error('Google sign in error:', error);
+    showStatus('error', 'Failed to sign in with Google. Please try again.');
+    setLoadingState(googleSigninBtn, false);
+    setLoadingState(googleSignupBtn, false);
   }
 }
 

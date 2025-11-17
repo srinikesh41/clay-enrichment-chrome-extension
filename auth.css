@@ -139,7 +139,7 @@ body {
 /* Buttons */
 .form-actions {
   margin-top: 24px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .btn-primary {
@@ -218,6 +218,102 @@ body {
 .btn-secondary:hover {
   background-color: #ede9e3;
   transform: translateY(-1px);
+}
+
+/* Divider */
+.divider {
+  position: relative;
+  text-align: center;
+  margin: 20px 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 45%;
+  height: 1px;
+  background-color: #eee;
+}
+
+.divider::before {
+  left: 0;
+}
+
+.divider::after {
+  right: 0;
+}
+
+.divider span {
+  background-color: #fffefb;
+  padding: 0 12px;
+  font-size: 12px;
+  color: #999;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Google Button */
+.btn-google {
+  width: 100%;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
+  color: #111;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 100px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.btn-google svg {
+  width: 18px;
+  height: 18px;
+}
+
+.btn-google:hover {
+  background-color: #f9f9f9;
+  border-color: #ccc;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.btn-google:active {
+  transform: translateY(0);
+}
+
+.btn-google.loading {
+  position: relative;
+  color: transparent;
+}
+
+.btn-google.loading svg {
+  opacity: 0;
+}
+
+.btn-google.loading::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: 50%;
+  left: 50%;
+  margin-left: -8px;
+  margin-top: -8px;
+  border: 2px solid #111;
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: spinner 0.6s linear infinite;
 }
 
 /* Form Footer */

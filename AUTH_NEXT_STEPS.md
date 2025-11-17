@@ -39,6 +39,19 @@ This will:
 3. Enable **Email** provider
 4. Save
 
+### Step 2b: Enable Google OAuth (Optional, 10 minutes)
+
+For detailed setup, see `GOOGLE_OAUTH_SETUP.md`
+
+**Quick version:**
+1. Get Google OAuth credentials from [Google Cloud Console](https://console.cloud.google.com/)
+2. In Supabase Dashboard → Authentication → Providers
+3. Enable **Google** provider
+4. Paste Client ID and Client Secret
+5. Save
+
+Users will then see "Continue with Google" button on sign-in/signup screens.
+
 ### Step 3: Enable Realtime (5 minutes)
 
 1. Go to **Database** → **Replication**
