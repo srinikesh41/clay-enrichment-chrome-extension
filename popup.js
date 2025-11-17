@@ -1,5 +1,20 @@
 // Configuration
-const CLAY_WEBHOOK_URL = 'https://api.clay.com/v3/sources/webhook/pull-in-data-from-a-webhook-44b82f58-53da-4941-85fd-630f785f594d';
+const CLAY_WEBHOOK_URLS = {
+  'get_contact_info': 'https://api.clay.com/v3/sources/webhook/pull-in-data-from-a-webhook-44b82f58-53da-4941-85fd-630f785f594d',
+  'do_account_research': 'https://api.clay.com/v3/sources/webhook/pull-in-data-from-a-webhook-32f6a132-d7fd-46d8-8eae-083406dcd7fc',
+  'do_lead_research': 'https://api.clay.com/v3/sources/webhook/pull-in-data-from-a-webhook-42e85c66-36ca-4df0-8ff2-d3e8b7b38d09'
+};
+
+// Fields to display in enriched data (in this specific order)
+const DISPLAY_FIELDS = ['name', 'title', 'org', 'country', 'work_email'];
+
+// Separate Supabase table for each workflow
+const SUPABASE_TABLES = {
+  'get_contact_info': 'enriched_data',
+  'do_account_research': 'account_research_data',
+  'do_lead_research': 'lead_research_data'
+};
+
 const SUPABASE_URL = 'https://zknyztmngccsxdtiddvz.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inprbnl6dG1uZ2Njc3hkdGlkZHZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMxMjYyMDUsImV4cCI6MjA3ODcwMjIwNX0.sV11EDMAVx0hLRNYAwvYvtkjNbMAuijPmoP8QAa2tTo';
 const REQUEST_TIMEOUT = 120000; // 2 minutes
@@ -10,6 +25,10 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // DOM elements
 let currentUrlElement;
 let workflowSelect;
+let selectTrigger;
+let selectValue;
+let selectDropdown;
+let selectOptions;
 let sendBtn;
 let statusMessage;
 let resultsContainer;
@@ -29,6 +48,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Get DOM elements
   currentUrlElement = document.getElementById('current-url');
   workflowSelect = document.getElementById('workflow-select');
+  selectTrigger = workflowSelect.querySelector('.select-trigger');
+  selectValue = workflowSelect.querySelector('.select-value');
+  selectDropdown = workflowSelect.querySelector('.select-dropdown');
+  selectOptions = workflowSelect.querySelectorAll('.select-option');
   sendBtn = document.getElementById('send-btn');
   statusMessage = document.getElementById('status-message');
   resultsContainer = document.getElementById('results-container');
@@ -40,11 +63,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Get current tab URL
   await getCurrentTabUrl();
 
-  // Load search history
-  await loadSearchHistory();
+  // Display empty history message (will load when workflow is selected)
+  displaySearchHistory();
 
   // Set up event listeners
-  workflowSelect.addEventListener('change', handleWorkflowChange);
+  setupCustomSelect();
   sendBtn.addEventListener('click', handleSendClick);
   clearHistoryBtn.addEventListener('click', handleClearHistory);
 });
@@ -66,29 +89,75 @@ async function getCurrentTabUrl() {
   }
 }
 
-// Handle workflow dropdown change
-function handleWorkflowChange(event) {
-  currentWorkflow = event.target.value;
+// Setup custom select dropdown
+function setupCustomSelect() {
+  // Toggle dropdown on trigger click
+  selectTrigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    selectTrigger.classList.toggle('active');
+    selectDropdown.classList.toggle('hidden');
+  });
 
-  // Enable send button only if workflow is selected
-  if (currentWorkflow) {
-    sendBtn.disabled = false;
-  } else {
-    sendBtn.disabled = true;
-  }
+  // Handle option selection
+  selectOptions.forEach(option => {
+    option.addEventListener('click', async (e) => {
+      e.stopPropagation();
 
-  // Hide previous results/errors when workflow changes
-  hideStatus();
-  hideResults();
+      // Get selected value
+      const value = option.getAttribute('data-value');
+      const text = option.textContent;
 
-  // Refresh history display to show only matching workflow
-  displaySearchHistory();
+      // Update selected value display
+      selectValue.textContent = text;
+
+      // Update selected class
+      selectOptions.forEach(opt => opt.classList.remove('selected'));
+      option.classList.add('selected');
+
+      // Close dropdown
+      selectTrigger.classList.remove('active');
+      selectDropdown.classList.add('hidden');
+
+      // Update current workflow
+      currentWorkflow = value;
+
+      // Enable send button only if workflow is selected
+      if (currentWorkflow) {
+        sendBtn.disabled = false;
+      } else {
+        sendBtn.disabled = true;
+      }
+
+      // Hide previous results/errors when workflow changes
+      hideStatus();
+      hideResults();
+
+      // Load history for the selected workflow
+      await loadSearchHistory();
+    });
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!workflowSelect.contains(e.target)) {
+      selectTrigger.classList.remove('active');
+      selectDropdown.classList.add('hidden');
+    }
+  });
 }
 
 // Handle send button click
 async function handleSendClick() {
   if (!currentWorkflow || !currentUrl) {
     showStatus('error', 'Please select a workflow');
+    return;
+  }
+
+  // Get the webhook URL for the selected workflow
+  const webhookUrl = CLAY_WEBHOOK_URLS[currentWorkflow];
+
+  if (!webhookUrl) {
+    showStatus('error', `Webhook URL not configured for ${formatWorkflowName(currentWorkflow)}`);
     return;
   }
 
@@ -105,7 +174,7 @@ async function handleSendClick() {
   };
 
   try {
-    const response = await fetch(CLAY_WEBHOOK_URL, {
+    const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -131,6 +200,9 @@ async function handleSendClick() {
 function subscribeToEnrichedData(requestId) {
   let dataReceived = false;
 
+  // Get the correct table for the current workflow
+  const tableName = SUPABASE_TABLES[currentWorkflow];
+
   const channel = supabase
     .channel(`enriched-data-${requestId}`)
     .on(
@@ -138,7 +210,7 @@ function subscribeToEnrichedData(requestId) {
       {
         event: 'INSERT',
         schema: 'public',
-        table: 'enriched_data'
+        table: tableName
       },
       (payload) => {
         if (payload.new && payload.new.request_id === requestId) {
@@ -186,24 +258,26 @@ function displayResults(data) {
     }
   }
 
-  // Display each key-value pair
+  // Display only specified fields in order
   if (typeof data === 'object' && data !== null) {
-    for (const [key, value] of Object.entries(data)) {
-      const resultItem = document.createElement('div');
-      resultItem.className = 'result-item';
+    DISPLAY_FIELDS.forEach(key => {
+      if (key in data) {
+        const resultItem = document.createElement('div');
+        resultItem.className = 'result-item';
 
-      const keyElement = document.createElement('div');
-      keyElement.className = 'result-key';
-      keyElement.textContent = formatKey(key);
+        const keyElement = document.createElement('div');
+        keyElement.className = 'result-key';
+        keyElement.textContent = formatKey(key);
 
-      const valueElement = document.createElement('div');
-      valueElement.className = 'result-value';
-      valueElement.textContent = formatValue(value);
+        const valueElement = document.createElement('div');
+        valueElement.className = 'result-value';
+        valueElement.textContent = formatValue(data[key]);
 
-      resultItem.appendChild(keyElement);
-      resultItem.appendChild(valueElement);
-      resultsContent.appendChild(resultItem);
-    }
+        resultItem.appendChild(keyElement);
+        resultItem.appendChild(valueElement);
+        resultsContent.appendChild(resultItem);
+      }
+    });
   } else {
     resultsContent.textContent = String(data);
   }
@@ -254,11 +328,13 @@ function setLoadingState(isLoading) {
   if (isLoading) {
     sendBtn.disabled = true;
     sendBtn.classList.add('loading');
-    workflowSelect.disabled = true;
+    selectTrigger.style.pointerEvents = 'none';
+    selectTrigger.style.opacity = '0.6';
   } else {
-    sendBtn.disabled = false;
+    sendBtn.disabled = currentWorkflow ? false : true;
     sendBtn.classList.remove('loading');
-    workflowSelect.disabled = false;
+    selectTrigger.style.pointerEvents = 'auto';
+    selectTrigger.style.opacity = '1';
   }
 }
 
@@ -275,40 +351,49 @@ function addRetryButton() {
   statusMessage.appendChild(retryBtn);
 }
 
-// Load search history from Supabase
+// Load search history from Supabase for the current workflow
 async function loadSearchHistory() {
   try {
-    showStatus('loading', 'Loading search history...');
+    // Clear existing history first
+    searchHistory = [];
 
-    // Fetch all enriched data from Supabase, ordered by most recent first
+    // Only load history if a workflow is selected
+    if (!currentWorkflow) {
+      displaySearchHistory();
+      return;
+    }
+
+    // Get the table name for the current workflow
+    const tableName = SUPABASE_TABLES[currentWorkflow];
+
+    // Fetch data from the workflow-specific table
     const { data, error } = await supabase
-      .from('enriched_data')
+      .from(tableName)
       .select('*')
       .order('created_at', { ascending: false })
       .limit(50); // Limit to most recent 50 searches
 
     if (error) {
-      console.error('Error loading search history:', error);
+      // Table doesn't exist or other error - just show empty history
       searchHistory = [];
-      hideStatus();
+      displaySearchHistory();
       return;
     }
 
     // Transform Supabase data to our history format
     searchHistory = (data || []).map(item => ({
       url: item.url || 'N/A',
-      workflow: item.workflow || 'unknown',
+      workflow: currentWorkflow,
       data: item,
       timestamp: item.created_at || item.timestamp || new Date().toISOString(),
       requestId: item.request_id
     }));
 
     displaySearchHistory();
-    hideStatus();
   } catch (error) {
-    console.error('Failed to load search history:', error);
+    // Silently handle any errors and show empty history
     searchHistory = [];
-    hideStatus();
+    displaySearchHistory();
   }
 }
 
@@ -324,74 +409,65 @@ function displaySearchHistory() {
   historyContent.innerHTML = '';
 
   if (searchHistory.length === 0) {
-    historyContent.innerHTML = '<div class="no-history">No previous searches yet</div>';
+    if (currentWorkflow) {
+      const workflowName = formatWorkflowName(currentWorkflow);
+      historyContent.innerHTML = `<div class="no-history">No previous searches for ${workflowName}</div>`;
+    } else {
+      historyContent.innerHTML = '<div class="no-history">Select a workflow to view history</div>';
+    }
     return;
   }
 
-  // Filter history by selected workflow (if one is selected)
-  const filteredHistory = currentWorkflow
-    ? searchHistory.filter(item => item.workflow === currentWorkflow)
-    : searchHistory;
-
-  if (filteredHistory.length === 0) {
-    const workflowName = currentWorkflow ? formatWorkflowName(currentWorkflow) : 'this workflow';
-    historyContent.innerHTML = `<div class="no-history">No previous searches for ${workflowName}</div>`;
-    return;
-  }
-
-  filteredHistory.forEach((item, index) => {
+  searchHistory.forEach((item, index) => {
     const historyItem = document.createElement('div');
     historyItem.className = 'history-item';
     historyItem.dataset.index = index;
 
-    // Header with workflow and timestamp
+    // Header with timestamp only (workflow name removed as it's redundant)
     const header = document.createElement('div');
     header.className = 'history-item-header';
-
-    const workflow = document.createElement('div');
-    workflow.className = 'history-workflow';
-    workflow.textContent = formatWorkflowName(item.workflow);
 
     const timestamp = document.createElement('div');
     timestamp.className = 'history-timestamp';
     timestamp.textContent = formatTimestamp(item.timestamp);
 
-    header.appendChild(workflow);
     header.appendChild(timestamp);
+    historyItem.appendChild(header);
 
-    // URL
-    const url = document.createElement('div');
-    url.className = 'history-url';
-    url.textContent = item.url;
+    // URL (only show if it exists and isn't N/A)
+    if (item.url && item.url !== 'N/A') {
+      const url = document.createElement('div');
+      url.className = 'history-url';
+      url.textContent = item.url;
+      historyItem.appendChild(url);
+    }
 
     // Results container
     const results = document.createElement('div');
     results.className = 'history-results';
 
-    // Display results data
+    // Display only specified fields in order
     if (item.data && typeof item.data === 'object') {
-      for (const [key, value] of Object.entries(item.data)) {
-        if (key === 'request_id' || key === 'created_at' || key === 'id') continue;
+      DISPLAY_FIELDS.forEach(key => {
+        if (key in item.data) {
+          const resultItem = document.createElement('div');
+          resultItem.className = 'history-result-item';
 
-        const resultItem = document.createElement('div');
-        resultItem.className = 'history-result-item';
+          const keyElement = document.createElement('div');
+          keyElement.className = 'history-result-key';
+          keyElement.textContent = formatKey(key);
 
-        const keyElement = document.createElement('div');
-        keyElement.className = 'history-result-key';
-        keyElement.textContent = formatKey(key);
+          const valueElement = document.createElement('div');
+          valueElement.className = 'history-result-value';
+          valueElement.textContent = formatValue(item.data[key]);
 
-        const valueElement = document.createElement('div');
-        valueElement.className = 'history-result-value';
-        valueElement.textContent = formatValue(value);
-
-        resultItem.appendChild(keyElement);
-        resultItem.appendChild(valueElement);
-        results.appendChild(resultItem);
-      }
+          resultItem.appendChild(keyElement);
+          resultItem.appendChild(valueElement);
+          results.appendChild(resultItem);
+        }
+      });
     }
 
-    historyItem.appendChild(header);
-    historyItem.appendChild(url);
     historyItem.appendChild(results);
 
     // Click to expand/collapse results
@@ -404,18 +480,27 @@ function displaySearchHistory() {
   });
 }
 
-// Clear all search history from Supabase
+// Clear search history for the current workflow from Supabase
 async function handleClearHistory() {
-  if (!confirm('Are you sure you want to clear all search history? This will delete all records from the database.')) {
+  if (!currentWorkflow) {
+    showStatus('error', 'Please select a workflow first');
+    return;
+  }
+
+  const workflowName = formatWorkflowName(currentWorkflow);
+  if (!confirm(`Are you sure you want to clear all ${workflowName} history? This will delete all records for this workflow.`)) {
     return;
   }
 
   try {
     showStatus('loading', 'Clearing history...');
 
-    // Delete all records from enriched_data table
+    // Get the table name for the current workflow
+    const tableName = SUPABASE_TABLES[currentWorkflow];
+
+    // Delete all records from the workflow's table
     const { error } = await supabase
-      .from('enriched_data')
+      .from(tableName)
       .delete()
       .neq('id', 0); // Delete all records (neq 0 means not equal to 0, which matches all records)
 
@@ -427,7 +512,7 @@ async function handleClearHistory() {
 
     searchHistory = [];
     displaySearchHistory();
-    showStatus('success', 'Search history cleared');
+    showStatus('success', `${workflowName} history cleared`);
     setTimeout(hideStatus, 2000);
   } catch (error) {
     console.error('Error clearing history:', error);

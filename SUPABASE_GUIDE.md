@@ -1,395 +1,354 @@
-# Complete Supabase Integration Guide
+# Supabase Setup Guide
 
-**Goal:** Get enriched data from Clay back to your Chrome Extension using Supabase
+Complete guide for setting up Supabase tables for the Clay Enrichment Tool.
 
----
+## 📋 Overview
 
-## 🎯 Architecture Overview
+The extension uses **3 separate Supabase tables** - one for each workflow:
 
-```
-┌─────────────────┐
-│ Chrome Extension│ (User clicks, sends URL)
-└────────┬────────┘
-         │ POST: { url, workflow, requestId }
-         ↓
-┌─────────────────┐
-│  Clay Webhook   │ (Enriches the data)
-└────────┬────────┘
-         │ POST: { requestId, name, title, org, country, work_email }
-         ↓
-┌─────────────────────────┐
-│ Supabase Edge Function  │ (receive-enriched-data)
-└────────┬────────────────┘
-         │ INSERT INTO enriched_data
-         ↓
-┌─────────────────────────┐
-│ Supabase Database Table │ (enriched_data)
-└────────┬────────────────┘
-         │ Realtime subscription
-         ↓
-┌─────────────────┐
-│ Chrome Extension│ (Displays results instantly!)
-└─────────────────┘
-```
+| Workflow | Table Name | Status |
+|----------|------------|--------|
+| Get Contact Info | `enriched_data` | ✅ Already exists |
+| Do Account Research | `account_research_data` | ⚠️ Need to create |
+| Do Lead Research | `lead_research_data` | ⚠️ Need to create |
 
 ---
 
-## 📋 Complete Step-by-Step Guide
+## 🏗️ Table Structure
 
-### Step 1: Create Supabase Project
+Each table should have the **same base structure**:
+
+### Required Columns (All Tables)
+
+| Column | Type | Settings |
+|--------|------|----------|
+| `id` | int8 | Primary key, Auto-increment |
+| `created_at` | timestamptz | Default: `now()` |
+| `request_id` | text | Unique, Not null |
+| `url` | text | Nullable |
+| `workflow` | text | Nullable |
+
+### Workflow-Specific Columns
+
+Add additional columns based on what Clay returns for each workflow.
+
+**Example for Contact Info:**
+- `name` (text)
+- `email` (text)
+- `phone` (text)
+- `company` (text)
+- `title` (text)
+
+**Example for Account Research:**
+- `company_name` (text)
+- `industry` (text)
+- `employee_count` (text)
+- `revenue` (text)
+- `location` (text)
+
+**Example for Lead Research:**
+- `lead_name` (text)
+- `lead_email` (text)
+- `lead_company` (text)
+- `lead_title` (text)
+- `linkedin_url` (text)
+
+---
+
+## 🚀 Step-by-Step: Create Tables
+
+### Step 1: Access Table Editor
 
 1. Go to https://supabase.com
-2. Click "Start your project"
-3. Sign up/log in (GitHub recommended)
-4. Click "New Project"
-5. Fill in:
-   - Name: `clay-enrichment`
-   - Password: (create and save it!)
-   - Region: Closest to you
-   - Plan: Free
-6. Click "Create new project"
-7. Wait 2-3 minutes
-
-**Save these values:**
-- Project URL: `https://xxxxx.supabase.co`
-- anon public key: `eyJhbG...`
+2. Open your project: `zknyztmngccsxdtiddvz`
+3. Click **"Table Editor"** in left sidebar
 
 ---
 
-### Step 2: Create Database Table
+### Step 2: Create `account_research_data` Table
 
-1. In Supabase dashboard, click **"Table Editor"** (left sidebar)
-2. Click **"Create a new table"**
-3. Fill in:
-   - **Name:** `enriched_data`
-   - **Description:** "Stores enriched data from Clay"
-   - **Enable Row Level Security (RLS):** UNCHECK this for now
-4. Click **"Add column"** for each field:
+1. Click **"New Table"**
+2. **Table name:** `account_research_data`
+3. **Description:** "Stores account research enrichment data"
+4. **Enable Row Level Security (RLS):** ❌ Uncheck (for development)
 
-**Column 1:**
+#### Add Base Columns:
+
+**Column 1: id**
 - Name: `id`
 - Type: `int8`
-- Default value: (leave empty)
-- Primary: ✅ CHECK
-- Auto-increment: ✅ CHECK
-- Nullable: UNCHECK
+- Primary: ✅ Check
+- Auto-increment: ✅ Check
+- Nullable: ❌ Uncheck
 
-**Column 2:**
-- Name: `request_id`
-- Type: `text`
-- Unique: ✅ CHECK
-- Nullable: UNCHECK
-
-**Column 3:**
-- Name: `name`
-- Type: `text`
-- Nullable: ✅ CHECK
-
-**Column 4:**
-- Name: `title`
-- Type: `text`
-- Nullable: ✅ CHECK
-
-**Column 5:**
-- Name: `org`
-- Type: `text`
-- Nullable: ✅ CHECK
-
-**Column 6:**
-- Name: `country`
-- Type: `text`
-- Nullable: ✅ CHECK
-
-**Column 7:**
-- Name: `work_email`
-- Type: `text`
-- Nullable: ✅ CHECK
-
-**Column 8:**
+**Column 2: created_at**
 - Name: `created_at`
 - Type: `timestamptz`
 - Default value: `now()`
-- Nullable: UNCHECK
+- Nullable: ❌ Uncheck
+
+**Column 3: request_id**
+- Name: `request_id`
+- Type: `text`
+- Unique: ✅ Check
+- Nullable: ❌ Uncheck
+
+**Column 4: url**
+- Name: `url`
+- Type: `text`
+- Nullable: ✅ Check
+
+**Column 5: workflow**
+- Name: `workflow`
+- Type: `text`
+- Nullable: ✅ Check
+
+#### Add Workflow-Specific Columns:
+
+Add any additional fields Clay returns for account research.
+
+**Example:**
+- `company_name` (text, nullable)
+- `industry` (text, nullable)
+- `employee_count` (text, nullable)
+- `revenue` (text, nullable)
+- `location` (text, nullable)
+- `website` (text, nullable)
+- `description` (text, nullable)
 
 5. Click **"Save"**
 
 ---
 
-### Step 3: Install Supabase CLI
+### Step 3: Create `lead_research_data` Table
 
-Open your terminal and run:
+Repeat the same process as Step 2:
 
-```bash
-npm install -g supabase
-```
+1. Click **"New Table"**
+2. **Table name:** `lead_research_data`
+3. **Description:** "Stores lead research enrichment data"
+4. **Enable RLS:** ❌ Uncheck
+5. Add the same **base columns** (id, created_at, request_id, url, workflow)
+6. Add **lead-specific columns** based on Clay output
 
-Then login:
+**Example lead columns:**
+- `lead_name` (text, nullable)
+- `lead_email` (text, nullable)
+- `lead_company` (text, nullable)
+- `lead_title` (text, nullable)
+- `linkedin_url` (text, nullable)
+- `phone` (text, nullable)
 
-```bash
-supabase login
-```
-
-This will open a browser - authorize the CLI.
-
----
-
-### Step 4: Initialize Supabase in Your Project
-
-Navigate to your extension folder:
-
-```bash
-cd "C:\Users\srinikesh.singarapu\Downloads\Chrome Extension"
-```
-
-Initialize Supabase:
-
-```bash
-supabase init
-```
-
-This creates a `supabase` folder.
+7. Click **"Save"**
 
 ---
 
-### Step 5: Link to Your Project
+### Step 4: Enable Realtime
 
-```bash
-supabase link --project-ref YOUR_PROJECT_REF
-```
+**For BOTH new tables:**
 
-**How to get YOUR_PROJECT_REF:**
-- Go to Supabase dashboard
-- Click "Project Settings" → "General"
-- Copy the "Reference ID" (looks like: `abcdefghijklmnop`)
+1. Go to **Database** → **Replication** (left sidebar)
+2. Find `account_research_data` in the list
+3. Toggle **Realtime** to ON ✅
+4. Repeat for `lead_research_data`
 
-Enter your database password when prompted.
+This allows the extension to receive instant updates when Clay adds data.
 
 ---
 
-### Step 6: Create Edge Function
+## ✅ Verification
 
-```bash
-supabase functions new receive-enriched-data
-```
+### Check Tables Exist
 
-This creates: `supabase/functions/receive-enriched-data/index.ts`
+1. Go to **Table Editor**
+2. You should see:
+   - ✅ `enriched_data` (already exists)
+   - ✅ `account_research_data` (newly created)
+   - ✅ `lead_research_data` (newly created)
 
----
+### Check Realtime is Enabled
 
-### Step 7: Write the Edge Function Code
+1. Go to **Database** → **Replication**
+2. All 3 tables should have Realtime **ON** ✅
 
-Open `supabase/functions/receive-enriched-data/index.ts` and replace with:
+### Test Insert (Optional)
 
-```typescript
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+Run this in the SQL Editor to test:
 
-serve(async (req) => {
-  // Handle CORS
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-      }
-    })
-  }
+```sql
+-- Test account_research_data
+INSERT INTO account_research_data (request_id, url, workflow, company_name)
+VALUES ('test-123', 'https://example.com', 'do_account_research', 'Test Company');
 
-  try {
-    // Get the enriched data from Clay
-    const { request_id, name, title, org, country, work_email } = await req.json()
+-- Test lead_research_data
+INSERT INTO lead_research_data (request_id, url, workflow, lead_name)
+VALUES ('test-456', 'https://example.com', 'do_lead_research', 'John Doe');
 
-    console.log('Received from Clay:', { request_id, name, title, org, country, work_email })
+-- Check inserts worked
+SELECT * FROM account_research_data WHERE request_id = 'test-123';
+SELECT * FROM lead_research_data WHERE request_id = 'test-456';
 
-    // Validate required field
-    if (!request_id) {
-      return new Response(
-        JSON.stringify({ error: 'Missing request_id' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Create Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    const supabase = createClient(supabaseUrl, supabaseKey)
-
-    // Insert into database
-    const { data, error } = await supabase
-      .from('enriched_data')
-      .insert({
-        request_id,
-        name: name || null,
-        title: title || null,
-        org: org || null,
-        country: country || null,
-        work_email: work_email || null
-      })
-      .select()
-
-    if (error) {
-      console.error('Database error:', error)
-      return new Response(
-        JSON.stringify({ error: error.message }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      )
-    }
-
-    console.log('Saved to database:', data)
-
-    return new Response(
-      JSON.stringify({ success: true, data }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
-    )
-
-  } catch (error) {
-    console.error('Error:', error)
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    )
-  }
-})
+-- Clean up test data
+DELETE FROM account_research_data WHERE request_id = 'test-123';
+DELETE FROM lead_research_data WHERE request_id = 'test-456';
 ```
 
 ---
 
-### Step 8: Deploy the Edge Function
+## 🔧 Configuring Clay
 
-```bash
-supabase functions deploy receive-enriched-data
-```
+Once tables are created, configure Clay to send enriched data to Supabase:
 
-After deployment, you'll see:
-```
-Edge Function URL: https://xxxxx.supabase.co/functions/v1/receive-enriched-data
-```
+### Get Your Supabase Details
 
-**Save this URL! Clay will POST to it.**
+1. Go to **Project Settings** → **API**
+2. Copy:
+   - **Project URL:** `https://zknyztmngccsxdtiddvz.supabase.co`
+   - **anon/public key:** `eyJhbGciOiJI...` (already in extension)
 
----
+### Clay Webhook Configuration
 
-### Step 9: Update Chrome Extension
+**For Account Research workflow:**
+Clay should POST to Supabase after enrichment with this payload:
 
-Install Supabase client in your extension by adding this to your `popup.html` before `popup.js`:
-
-```html
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-```
-
-Update your `popup.js` - add at the top after the config:
-
-```javascript
-// Supabase configuration
-const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co'
-const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY'
-
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-```
-
----
-
-### Step 10: Add Realtime Subscription
-
-Add this function to `popup.js`:
-
-```javascript
-// Subscribe to enriched data updates
-function subscribeToEnrichedData(requestId) {
-  const channel = supabase
-    .channel('enriched-data-changes')
-    .on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'enriched_data',
-        filter: `request_id=eq.${requestId}`
-      },
-      (payload) => {
-        console.log('Received enriched data!', payload)
-        displayResults(payload.new)
-        setLoadingState(false)
-      }
-    )
-    .subscribe()
-
-  return channel
-}
-```
-
-Update `handleSendClick` function to subscribe after sending:
-
-```javascript
-// After successfully sending to Clay
-showStatus('loading', 'Sent to Clay! Waiting for enriched data...')
-
-// Subscribe to updates for this request
-const channel = subscribeToEnrichedData(requestId)
-
-// Timeout after 30 seconds
-setTimeout(() => {
-  channel.unsubscribe()
-  setLoadingState(false)
-  showStatus('error', 'Request timed out')
-}, 30000)
-```
-
----
-
-### Step 11: Configure Clay
-
-In Clay, configure your enrichment to POST the results to:
-
-```
-https://YOUR_PROJECT.supabase.co/functions/v1/receive-enriched-data
-```
-
-With this JSON body:
 ```json
 {
-  "request_id": "{{request_id}}",
-  "name": "{{enriched_name}}",
-  "title": "{{enriched_title}}",
-  "org": "{{enriched_org}}",
-  "country": "{{enriched_country}}",
-  "work_email": "{{enriched_work_email}}"
+  "request_id": "{{requestId from extension}}",
+  "url": "{{original URL}}",
+  "workflow": "do_account_research",
+  "company_name": "{{enriched_company_name}}",
+  "industry": "{{enriched_industry}}",
+  "employee_count": "{{enriched_employee_count}}",
+  "revenue": "{{enriched_revenue}}",
+  "location": "{{enriched_location}}"
 }
 ```
 
----
+**For Lead Research workflow:**
+Clay should POST with:
 
-### Step 12: Test End-to-End
+```json
+{
+  "request_id": "{{requestId from extension}}",
+  "url": "{{original URL}}",
+  "workflow": "do_lead_research",
+  "lead_name": "{{enriched_name}}",
+  "lead_email": "{{enriched_email}}",
+  "lead_company": "{{enriched_company}}",
+  "lead_title": "{{enriched_title}}",
+  "linkedin_url": "{{enriched_linkedin}}"
+}
+```
 
-1. Open Chrome extension
-2. Go to a test URL
-3. Click extension
-4. Select workflow
-5. Click "Send to Clay"
-6. Extension should show "Waiting for enriched data..."
-7. Clay enriches the data
-8. Clay POSTs to Supabase Edge Function
-9. Data saved to database
-10. Extension receives it via Realtime
-11. Extension displays the enriched data!
+### Supabase Insert Endpoint
+
+Clay should POST to:
+```
+https://zknyztmngccsxdtiddvz.supabase.co/rest/v1/[TABLE_NAME]
+```
+
+**Headers:**
+```
+apikey: [your-anon-key]
+Authorization: Bearer [your-anon-key]
+Content-Type: application/json
+Prefer: return=representation
+```
+
+Replace `[TABLE_NAME]` with:
+- `account_research_data` for account research
+- `lead_research_data` for lead research
 
 ---
 
 ## 🐛 Troubleshooting
 
-**Edge Function not deploying?**
-- Check you're logged in: `supabase login`
-- Check you're linked: `supabase link`
+### Table doesn't appear in extension history
 
-**Realtime not working?**
-- Check Supabase dashboard → Database → Replication
-- Make sure `enriched_data` table has replication enabled
+**Check:**
+1. Table name matches exactly in `popup.js` SUPABASE_TABLES
+2. Realtime is enabled for the table
+3. Reload the extension after creating table
 
-**Clay webhook failing?**
-- Check Edge Function logs: Supabase dashboard → Edge Functions → Logs
-- Verify the URL is correct
+### Clay can't insert data
+
+**Check:**
+1. RLS (Row Level Security) is disabled on the table
+2. API key is correct
+3. Column names match Clay's payload
+4. `request_id` is unique (not already in table)
+
+### Realtime updates not working
+
+**Check:**
+1. Database → Replication → Table has Realtime ON
+2. Extension is subscribing to correct table
+3. No errors in browser console (right-click extension → Inspect)
+
+### Extension shows errors when selecting workflow
+
+This is normal if the table doesn't exist yet. Create the table and errors will disappear.
 
 ---
 
-**This is your complete guide. Work through each step carefully!**
+## 📝 Column Customization
+
+### Adding New Columns
+
+If Clay starts returning additional fields:
+
+1. Go to Table Editor
+2. Click on the table name
+3. Click **"New Column"**
+4. Add column name and type
+5. Set to nullable
+6. Save
+
+**No extension code changes needed** - new fields will automatically appear in results.
+
+### Removing Columns
+
+1. Click on column header
+2. Click **"Delete column"**
+3. Confirm
+
+---
+
+## 🔐 Security (Production)
+
+For production deployment:
+
+1. **Enable RLS** on all tables
+2. **Add policies:**
+   ```sql
+   -- Allow extension to read
+   CREATE POLICY "Allow public read access"
+   ON account_research_data
+   FOR SELECT
+   USING (true);
+
+   -- Allow Clay to insert
+   CREATE POLICY "Allow service role insert"
+   ON account_research_data
+   FOR INSERT
+   WITH CHECK (true);
+   ```
+
+3. **Use service role key** for Clay inserts (not anon key)
+
+---
+
+## ✅ Checklist
+
+- [ ] `account_research_data` table created
+- [ ] `lead_research_data` table created
+- [ ] Base columns added to both tables (id, created_at, request_id, url, workflow)
+- [ ] Workflow-specific columns added
+- [ ] Realtime enabled on both tables
+- [ ] Clay configured to POST to Supabase
+- [ ] Tested end-to-end flow for each workflow
+- [ ] Extension shows history for each workflow
+
+---
+
+**Done! Your Supabase is ready for all 3 workflows!** 🎉

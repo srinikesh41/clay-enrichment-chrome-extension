@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Clay Enrichment Tool</title>
+  <title>Clay Enrichment</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400;1,9..40,500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
   <div class="container">
-    <h1>Clay Enrichment Tool</h1>
-
     <div class="url-section">
       <label for="current-url">Current URL:</label>
       <div id="current-url" class="url-display">Loading...</div>
@@ -17,13 +18,19 @@
 
     <div class="workflow-section">
       <label for="workflow-select">Select Workflow:</label>
-      <select id="workflow-select">
-        <option value="">-- Choose a workflow --</option>
-        <option value="get_contact_info">Get contact info</option>
-        <!-- Temporarily disabled - only contact info is working -->
-        <!-- <option value="do_account_research">Do account research</option>
-        <option value="do_lead_research">Do lead research</option> -->
-      </select>
+      <div class="custom-select" id="workflow-select">
+        <div class="select-trigger">
+          <span class="select-value">Select a workflow</span>
+          <svg class="select-arrow" width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M1 1.5L6 6.5L11 1.5" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="select-dropdown hidden">
+          <div class="select-option" data-value="get_contact_info">Contact Info</div>
+          <div class="select-option" data-value="do_account_research">Account Research</div>
+          <div class="select-option" data-value="do_lead_research">Lead Research</div>
+        </div>
+      </div>
     </div>
 
     <div class="action-section">

@@ -1,229 +1,245 @@
 # Clay Enrichment Tool - Chrome Extension
 
-A Chrome extension that captures URLs and enriches them with Clay data via Zapier.
+A Chrome extension that sends URLs to Clay for data enrichment across three workflows, with real-time results via Supabase.
 
-## 🚀 Getting Started
+## 🎯 Features
 
-**New here? Start with these files in order:**
+- **3 Workflows:**
+  - Get Contact Info
+  - Do Account Research
+  - Do Lead Research
 
-1. **STATUS.md** ⭐ - Check current progress and what to do next
-2. **IMPLEMENTATION_GUIDE.md** ⭐ - Complete step-by-step implementation (phases 1-7)
-3. **QUICK_START.md** - Quick reference guide
-4. **README.md** (this file) - Full documentation
+- **Separate Data Tables:** Each workflow has its own Supabase table
+- **Real-time Updates:** Results appear instantly via Supabase Realtime
+- **Search History:** Independent history for each workflow
+- **Direct Clay Integration:** No middleware needed
 
-**Current Status:** Extension is loaded and working. Next step is to test the popup and configure Zapier.
+## 🏗️ Architecture
 
----
+```
+Chrome Extension
+    ↓ Send URL + workflow
+Clay Webhook (workflow-specific)
+    ↓ Enriches data
+Supabase Table (workflow-specific)
+    ↓ Realtime update
+Chrome Extension displays results
+```
 
-## Features
+## 📋 Current Setup
 
-- Auto-captures current tab URL
-- Select from 3 workflow types:
-  - Get contact info
-  - Do account research
-  - Do lead research
-- Sends data to Zapier for Clay enrichment
-- Displays enriched results in clean UI
-- Error handling and retry functionality
+### Workflows & Webhooks
 
-## Installation
+| Workflow | Clay Webhook | Supabase Table |
+|----------|--------------|----------------|
+| Get Contact Info | `...44b82f58-53da-4941-85fd-630f785f594d` | `enriched_data` |
+| Do Account Research | `...32f6a132-d7fd-46d8-8eae-083406dcd7fc` | `account_research_data` |
+| Do Lead Research | `...42e85c66-36ca-4df0-8ff2-d3e8b7b38d09` | `lead_research_data` |
 
-### 1. Install the Extension
+### Supabase Configuration
 
-1. Open Chrome and navigate to `chrome://extensions/`
-2. Enable "Developer mode" (toggle in top-right corner)
-3. Click "Load unpacked"
-4. Select the folder containing these extension files
-5. The extension should now appear in your extensions list
+**Project:** `https://zknyztmngccsxdtiddvz.supabase.co`
 
-### 2. Pin the Extension
+**Tables needed:**
+- `enriched_data` (for Get Contact Info) ✅
+- `account_research_data` (for Account Research)
+- `lead_research_data` (for Lead Research)
 
-1. Click the puzzle icon in Chrome's toolbar
-2. Find "Clay Enrichment Tool"
-3. Click the pin icon to keep it visible in your toolbar
+Each table should have:
+- `id` (bigint, primary key, auto-increment)
+- `created_at` (timestamp with time zone, default: now())
+- `request_id` (text, unique)
+- `url` (text)
+- `workflow` (text)
+- Additional fields based on enrichment type
 
-## Configuration
+**Important:** Enable Realtime replication for all tables.
 
-### Step 1: Configure the Zapier Webhook URL
+## 🚀 Installation
 
-1. Open `popup.js` in a text editor
-2. Find this line near the top:
-   ```javascript
-   const ZAPIER_WEBHOOK_URL = 'YOUR_ZAPIER_WEBHOOK_URL_HERE';
-   ```
-3. Replace `'YOUR_ZAPIER_WEBHOOK_URL_HERE'` with your actual Zapier webhook URL
-4. Save the file
-5. Reload the extension in `chrome://extensions/` (click the refresh icon)
-
-### Step 2: Set Up Zapier Workflow
-
-Create a Zapier workflow with these steps:
-
-**Trigger: Webhook (Catch Hook)**
-- This generates the webhook URL you'll use in Step 1
-- Zapier will receive: `{ "url": "...", "workflow": "...", "requestId": "...", "timestamp": "..." }`
-
-**Action: Call Clay API**
-- Use the `url` and `workflow` fields from the webhook data
-- Configure Clay to enrich the data based on the workflow type
-
-**Action: Send Results Back**
-- See "Architecture & Data Flow" section below for options
-
-## Architecture & Data Flow
-
-### Current Flow (Outbound Only)
-
-Currently, the extension can successfully:
-1. Capture the current tab URL
-2. Send it to Zapier with the selected workflow type
-3. Zapier can process it with Clay
-
-### Receiving Data Back (Two Options)
-
-Chrome extensions cannot directly receive HTTP POST requests from external services. You need to choose one of these approaches:
-
-#### Option A: Simple Backend Server (Recommended)
-
-1. **Set up a simple backend server** (Node.js, Python, etc.) with two endpoints:
-   - `POST /webhook` - Receives data from Zapier
-   - `GET /results?requestId=xxx` - Extension polls for results
-
-2. **Example Node.js Server** (minimal):
-   ```javascript
-   const express = require('express');
-   const app = express();
-   const results = new Map();
-
-   app.use(express.json());
-
-   // Zapier sends enriched data here
-   app.post('/webhook', (req, res) => {
-     const { requestId, data } = req.body;
-     results.set(requestId, { data, timestamp: Date.now() });
-     // Clean up after 5 minutes
-     setTimeout(() => results.delete(requestId), 300000);
-     res.json({ success: true });
-   });
-
-   // Extension polls this endpoint
-   app.get('/results', (req, res) => {
-     const { requestId } = req.query;
-     const result = results.get(requestId);
-     if (result) {
-       results.delete(requestId);
-       res.json({ status: 'complete', result: result.data });
-     } else {
-       res.json({ status: 'pending' });
-     }
-   });
-
-   app.listen(3000);
+1. **Install the Extension**
+   ```bash
+   1. Open Chrome → chrome://extensions/
+   2. Enable "Developer mode"
+   3. Click "Load unpacked"
+   4. Select the extension folder
    ```
 
-3. **Configure the extension for polling**:
-   - Open `background.js`
-   - Set `POLLING_ENABLED = true`
-   - Set `POLLING_ENDPOINT` to your backend URL (e.g., `http://localhost:3000/results`)
-   - Reload the extension
+2. **Verify Setup**
+   - Extension icon shows The Kiln logo
+   - Click icon → popup opens
+   - Shows current URL
+   - Dropdown has 3 workflows
 
-4. **Update Zapier**:
-   - Have Zapier POST enriched data to your backend's `/webhook` endpoint
-   - Include the `requestId` from the original request
+## 💻 Usage
 
-#### Option B: Firebase/Cloud Storage
+1. Navigate to any webpage (LinkedIn profile, company page, etc.)
+2. Click the extension icon
+3. Select a workflow from dropdown
+4. Click "Send to Clay"
+5. Wait for enriched data to appear (via Realtime)
+6. View results in the popup
+7. Check workflow-specific history below
 
-1. Use Firebase Realtime Database or Firestore
-2. Extension writes request with unique ID
-3. Zapier writes enriched data to same location
-4. Extension listens for real-time updates
-5. Requires adding Firebase SDK to the extension
-
-## Usage
-
-1. Navigate to any webpage (e.g., a LinkedIn profile)
-2. Click the Clay Enrichment Tool extension icon
-3. The current URL will be automatically captured
-4. Select a workflow type from the dropdown
-5. Click "Send to Clay"
-6. Wait for the enriched data to appear (if backend is configured)
-
-## File Structure
+## 📁 File Structure
 
 ```
 /Chrome Extension/
-├── manifest.json          # Extension configuration
-├── popup.html            # Popup UI structure
-├── popup.css             # Popup styling
-├── popup.js              # Popup logic (UPDATE WEBHOOK URL HERE)
-├── background.js         # Background service worker
+├── manifest.json          # Extension config
+├── popup.html            # UI structure
+├── popup.css             # Styling
+├── popup.js              # Main logic
+├── supabase.js           # Supabase client SDK
+├── icon16.png            # The Kiln logo (16x16)
+├── icon48.png            # The Kiln logo (48x48)
+├── icon128.png           # The Kiln logo (128x128)
+├── TheKilnLogo.png       # Source logo
 ├── README.md             # This file
-└── icons/                # Extension icons (add your own)
-    ├── icon16.png
-    ├── icon48.png
-    └── icon128.png
+└── SUPABASE_GUIDE.md     # Supabase setup instructions
 ```
 
-## Adding Custom Icons
+## 🔧 Configuration
 
-The extension currently references icons that need to be created:
-- `icon16.png` (16x16 pixels)
-- `icon48.png` (48x48 pixels)
-- `icon128.png` (128x128 pixels)
+### popup.js Configuration
 
-You can:
-1. Create icons with these dimensions
-2. Use a tool like [favicon.io](https://favicon.io/) to generate them
-3. Or temporarily remove icon references from `manifest.json`
+```javascript
+// Clay webhooks (already configured)
+const CLAY_WEBHOOK_URLS = {
+  'get_contact_info': 'https://api.clay.com/...',
+  'do_account_research': 'https://api.clay.com/...',
+  'do_lead_research': 'https://api.clay.com/...'
+};
 
-## Troubleshooting
+// Supabase tables (already configured)
+const SUPABASE_TABLES = {
+  'get_contact_info': 'enriched_data',
+  'do_account_research': 'account_research_data',
+  'do_lead_research': 'lead_research_data'
+};
+
+// Supabase connection (already configured)
+const SUPABASE_URL = 'https://zknyztmngccsxdtiddvz.supabase.co';
+const SUPABASE_ANON_KEY = '...';
+```
+
+## 🗄️ Supabase Tables
+
+### Creating New Tables
+
+For each new workflow table (`account_research_data`, `lead_research_data`):
+
+1. Go to Supabase → Table Editor → New Table
+2. Name: `account_research_data` (or `lead_research_data`)
+3. Disable RLS (for development)
+4. Add columns:
+   - `id` (int8, primary key, auto-increment)
+   - `created_at` (timestamptz, default: now())
+   - `request_id` (text, unique, not null)
+   - `url` (text)
+   - `workflow` (text)
+   - Additional enrichment fields (specific to workflow)
+5. Go to Database → Replication → Enable for this table
+
+## 🔍 How It Works
+
+### 1. User Sends Request
+```javascript
+Extension → Clay Webhook
+Payload: { url, workflow, requestId, timestamp }
+```
+
+### 2. Clay Enriches Data
+```
+Clay processes the URL
+Extracts/enriches data based on workflow
+```
+
+### 3. Clay Sends to Supabase
+```javascript
+Clay → Supabase Table (workflow-specific)
+Payload: { request_id, url, workflow, ...enriched_fields }
+```
+
+### 4. Extension Receives via Realtime
+```javascript
+Supabase Realtime → Extension
+Extension displays results instantly
+Saves to workflow-specific history
+```
+
+## 🎨 UI Features
+
+### Search History
+- **Workflow-Specific:** Each workflow shows only its own history
+- **Auto-Load:** History loads when selecting a workflow
+- **Expandable Results:** Click items to view enrichment details
+- **Clear History:** Clears only current workflow's history
+
+### Display
+- **Timestamp:** Shows relative time (e.g., "5 mins ago")
+- **URL:** Only shown if valid (hides "N/A")
+- **Results:** Key-value pairs of enriched data
+- **No Redundancy:** Workflow name not shown (already selected)
+
+## 🐛 Troubleshooting
 
 ### Extension won't load
-- Check that all files are in the same folder
-- Make sure Developer mode is enabled in `chrome://extensions/`
-- Check the Chrome console for errors
+- Check all files are in folder
+- Enable Developer mode in Chrome
+- Check for errors in `chrome://extensions/`
 
-### "Please configure ZAPIER_WEBHOOK_URL" error
-- You need to update the `ZAPIER_WEBHOOK_URL` in `popup.js`
-- Don't forget to reload the extension after making changes
+### No history showing
+- Select a workflow first
+- Check if Supabase table exists
+- Verify Realtime is enabled on table
 
-### Can't get current URL
-- Extension needs permission to access the current tab
-- Make sure you're on a normal webpage (not chrome:// pages)
+### Data not returning
+- Check Clay webhook is configured correctly
+- Verify Supabase table exists for that workflow
+- Check Supabase Realtime is enabled
+- Open popup console (right-click icon → Inspect) for errors
 
-### Data not coming back
-- You need to set up a backend server (see Option A above)
-- Or implement Firebase storage (see Option B above)
-- Without this, the extension can only send data, not receive it
+### Wrong history showing
+- Make sure you selected the correct workflow
+- Clear browser cache and reload extension
+- Check popup.js has correct table mappings
 
-### Request timeout
-- Default timeout is 30 seconds
-- Check your Zapier workflow is running
-- Check your backend server is accessible
-- Verify network connectivity
+## 🔐 Security Notes
 
-## Next Steps
+- Supabase anon key is safe to expose (read-only operations)
+- RLS (Row Level Security) should be enabled for production
+- Never commit service role keys to code
 
-1. **Set up icons** - Add proper icon files for a professional look
-2. **Backend server** - Implement one of the data return options above
-3. **Testing** - Test the complete flow end-to-end
-4. **Error logging** - Add more detailed error logging for debugging
-5. **Data validation** - Add validation for Clay response data
-6. **Security** - Add authentication if handling sensitive data
+## 📝 Development
 
-## Development Tips
+### Reload Extension After Changes
+```bash
+1. Go to chrome://extensions/
+2. Click reload icon on "Clay Enrichment Tool"
+```
 
-- Check the extension console: Right-click the extension icon → "Inspect popup"
-- Check the background worker console: `chrome://extensions/` → "Inspect views: background page"
-- Reload extension after code changes: `chrome://extensions/` → Click refresh icon
-- Monitor network requests in the popup inspector's Network tab
+### View Console Logs
+```bash
+Right-click extension icon → "Inspect popup"
+Check Console tab for logs
+```
 
-## Support
+### Test Supabase Connection
+```javascript
+// In popup console
+supabase.from('enriched_data').select('*').limit(1)
+```
 
-For Chrome extension development help:
-- [Chrome Extension Documentation](https://developer.chrome.com/docs/extensions/)
-- [Manifest V3 Migration Guide](https://developer.chrome.com/docs/extensions/mv3/intro/)
+## 🔗 Links
 
-For Zapier help:
-- [Zapier Webhooks Documentation](https://zapier.com/apps/webhook/integrations)
-- [Zapier API Documentation](https://zapier.com/help/create/code-webhooks)
+- **Supabase Project:** https://zknyztmngccsxdtiddvz.supabase.co
+- **Clay API Docs:** https://clay.com/docs
+- **Chrome Extension Docs:** https://developer.chrome.com/docs/extensions/
+
+## 📄 License
+
+Internal tool for The Kiln
+
+---
+
+**Last Updated:** November 17, 2025
