@@ -14,6 +14,23 @@ body {
   line-height: 1.6;
 }
 
+body::-webkit-scrollbar {
+  width: 6px;
+}
+
+body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+body::-webkit-scrollbar-thumb {
+  background: #eee;
+  border-radius: 100px;
+}
+
+body::-webkit-scrollbar-thumb:hover {
+  background: #ccc;
+}
+
 .auth-container {
   padding: 24px;
   background: #fffefb;
@@ -21,6 +38,23 @@ body {
   border-radius: 12px;
   display: flex;
   flex-direction: column;
+}
+
+.auth-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.auth-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.auth-container::-webkit-scrollbar-thumb {
+  background: #eee;
+  border-radius: 100px;
+}
+
+.auth-container::-webkit-scrollbar-thumb:hover {
+  background: #ccc;
 }
 
 /* Header */
