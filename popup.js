@@ -42,9 +42,20 @@ let currentUrl = '';
 let currentWorkflow = '';
 let requestId = null;
 let searchHistory = [];
+let currentUser = null;
+let currentSession = null;
 
 // Initialize when popup opens
 document.addEventListener('DOMContentLoaded', async () => {
+  // Check authentication first
+  const isAuthenticated = await checkAuthStatus();
+
+  if (!isAuthenticated) {
+    // Redirect to auth page
+    window.location.href = 'auth.html';
+    return;
+  }
+
   // Get DOM elements
   currentUrlElement = document.getElementById('current-url');
   workflowSelect = document.getElementById('workflow-select');
@@ -70,7 +81,97 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupCustomSelect();
   sendBtn.addEventListener('click', handleSendClick);
   clearHistoryBtn.addEventListener('click', handleClearHistory);
+
+  // Add sign out functionality
+  addSignOutButton();
 });
+
+// Check authentication status
+async function checkAuthStatus() {
+  try {
+    // Try to get session from Supabase
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (session) {
+      currentSession = session;
+      currentUser = session.user;
+
+      // Save to Chrome storage
+      await chrome.storage.local.set({
+        supabase_session: session,
+        supabase_user: session.user
+      });
+
+      return true;
+    }
+
+    // No session from Supabase, check Chrome storage
+    const result = await chrome.storage.local.get(['supabase_session', 'supabase_user']);
+
+    if (result.supabase_session && result.supabase_user) {
+      currentSession = result.supabase_session;
+      currentUser = result.supabase_user;
+
+      // Restore session to Supabase
+      await supabase.auth.setSession(result.supabase_session);
+
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    console.error('Auth check error:', error);
+    return false;
+  }
+}
+
+// Add sign out button to header
+function addSignOutButton() {
+  // Check if button already exists
+  if (document.getElementById('signout-btn')) return;
+
+  // Create sign out button
+  const signOutBtn = document.createElement('button');
+  signOutBtn.id = 'signout-btn';
+  signOutBtn.textContent = 'Sign Out';
+  signOutBtn.style.cssText = `
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    background-color: #f5f3ef;
+    color: #111;
+    border: none;
+    border-radius: 100px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s ease;
+  `;
+
+  signOutBtn.addEventListener('mouseenter', () => {
+    signOutBtn.style.backgroundColor = '#ede9e3';
+  });
+
+  signOutBtn.addEventListener('mouseleave', () => {
+    signOutBtn.style.backgroundColor = '#f5f3ef';
+  });
+
+  signOutBtn.addEventListener('click', async () => {
+    try {
+      await supabase.auth.signOut();
+      await chrome.storage.local.remove(['supabase_session', 'supabase_user']);
+      window.location.href = 'auth.html';
+    } catch (error) {
+      console.error('Sign out error:', error);
+      alert('Failed to sign out. Please try again.');
+    }
+  });
+
+  document.querySelector('.container').style.position = 'relative';
+  document.querySelector('.container').appendChild(signOutBtn);
+}
 
 // Get the current tab's URL
 async function getCurrentTabUrl() {
