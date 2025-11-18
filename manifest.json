@@ -5,7 +5,8 @@
   "description": "Capture URLs and enrich them with Clay data",
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "identity"
   ],
   "host_permissions": [
     "<all_urls>"

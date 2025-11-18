@@ -134,6 +134,52 @@
       <h1>Verifying...</h1>
       <p>Please wait while we verify your email.</p>
     </div>
+
+    <!-- Password Reset Form (hidden by default) -->
+    <div id="reset-form" style="display: none;">
+      <h1>Set New Password</h1>
+      <p>Enter your new password below.</p>
+      <div style="margin: 20px 0;">
+        <input type="password" id="new-password" placeholder="New password" style="
+          width: 100%;
+          padding: 12px 16px;
+          font-size: 14px;
+          border: 1px solid #ddd;
+          border-radius: 8px;
+          margin-bottom: 12px;
+          font-family: 'DM Sans', sans-serif;
+        ">
+        <input type="password" id="confirm-password" placeholder="Confirm password" style="
+          width: 100%;
+          padding: 12px 16px;
+          font-size: 14px;
+          border: 1px solid #ddd;
+          border-radius: 8px;
+          font-family: 'DM Sans', sans-serif;
+        ">
+      </div>
+      <button id="reset-btn" style="
+        width: 100%;
+        padding: 12px 24px;
+        font-size: 14px;
+        font-weight: 600;
+        background: #8B4513;
+        color: white;
+        border: none;
+        border-radius: 100px;
+        cursor: pointer;
+        font-family: 'DM Sans', sans-serif;
+      ">Update Password</button>
+      <div id="reset-error" style="
+        margin-top: 12px;
+        padding: 10px;
+        background: #fef2f2;
+        color: #dc2626;
+        border-radius: 8px;
+        font-size: 13px;
+        display: none;
+      "></div>
+    </div>
   </div>
 
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -160,9 +206,8 @@
       // JWT has 3 parts separated by dots
       const parts = token.split('.');
       if (parts.length !== 3) return false;
-      // Each part should be base64
-      const base64Regex = /^[A-Za-z0-9_-]+$/;
-      return parts.every(part => base64Regex.test(part));
+      // Basic length check - each part should have content
+      return parts.every(part => part.length > 0);
     }
 
     async function handleVerification() {
@@ -191,16 +236,14 @@
         const refreshToken = hashParams.get('refresh_token');
         const type = hashParams.get('type');
 
-        // Validate token format
-        if (!accessToken || !isValidTokenFormat(accessToken)) {
-          showError('Invalid token', 'The verification token is invalid. Please request a new verification email.');
+        // Basic check - token must exist
+        if (!accessToken) {
+          showError('Missing token', 'The verification link is incomplete. Please request a new one.');
           return;
         }
 
-        if (refreshToken && !isValidTokenFormat(refreshToken)) {
-          showError('Invalid token', 'The verification token is malformed. Please request a new verification email.');
-          return;
-        }
+        // Let Supabase handle the actual token validation - it's more secure
+        // Server-side validation is the real security check
 
         // Set timeout for the request
         const controller = new AbortController();
@@ -220,11 +263,12 @@
           return;
         }
 
-        // Success!
-        if (type === 'signup' || type === 'email_change') {
+        // Handle based on type
+        if (type === 'recovery') {
+          // Show password reset form
+          showPasswordResetForm();
+        } else if (type === 'signup' || type === 'email_change') {
           showSuccess('Email Verified!', 'Your email has been verified successfully. You can now open the Clay Enrichment extension and sign in.');
-        } else if (type === 'recovery') {
-          showSuccess('Password Reset', 'You can now open the Clay Enrichment extension and sign in with your new password.');
         } else {
           showSuccess('Success!', 'Authentication successful. You can now open the Clay Enrichment extension.');
         }
@@ -280,6 +324,79 @@
       content.appendChild(icon);
       content.appendChild(h1);
       content.appendChild(p);
+    }
+
+    function showPasswordResetForm() {
+      // Hide the loading content
+      document.getElementById('content').style.display = 'none';
+      // Show the reset form
+      document.getElementById('reset-form').style.display = 'block';
+
+      // Add event listener for the reset button
+      document.getElementById('reset-btn').addEventListener('click', handlePasswordReset);
+
+      // Allow Enter key to submit
+      document.getElementById('confirm-password').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handlePasswordReset();
+      });
+    }
+
+    async function handlePasswordReset() {
+      const newPassword = document.getElementById('new-password').value;
+      const confirmPassword = document.getElementById('confirm-password').value;
+      const errorDiv = document.getElementById('reset-error');
+      const resetBtn = document.getElementById('reset-btn');
+
+      // Hide previous errors
+      errorDiv.style.display = 'none';
+
+      // Validation
+      if (!newPassword || !confirmPassword) {
+        errorDiv.textContent = 'Please fill in both fields';
+        errorDiv.style.display = 'block';
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        errorDiv.textContent = 'Password must be at least 6 characters';
+        errorDiv.style.display = 'block';
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        errorDiv.textContent = 'Passwords do not match';
+        errorDiv.style.display = 'block';
+        return;
+      }
+
+      // Disable button and show loading
+      resetBtn.disabled = true;
+      resetBtn.textContent = 'Updating...';
+
+      try {
+        const { error } = await supabase.auth.updateUser({
+          password: newPassword
+        });
+
+        if (error) {
+          errorDiv.textContent = error.message || 'Failed to update password';
+          errorDiv.style.display = 'block';
+          resetBtn.disabled = false;
+          resetBtn.textContent = 'Update Password';
+          return;
+        }
+
+        // Success - hide form and show success message
+        document.getElementById('reset-form').style.display = 'none';
+        document.getElementById('content').style.display = 'block';
+        showSuccess('Password Updated!', 'Your password has been changed successfully. You can now open the Clay Enrichment extension and sign in.');
+
+      } catch (error) {
+        errorDiv.textContent = 'An error occurred. Please try again.';
+        errorDiv.style.display = 'block';
+        resetBtn.disabled = false;
+        resetBtn.textContent = 'Update Password';
+      }
     }
 
     // Run verification when page loads

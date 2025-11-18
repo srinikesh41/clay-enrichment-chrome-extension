@@ -125,22 +125,35 @@ async function checkAuthStatus() {
   }
 }
 
-// Add sign out button to header
+// Add user profile dropdown to header
 function addSignOutButton() {
-  // Check if button already exists
-  if (document.getElementById('signout-btn')) return;
+  // Check if profile already exists
+  if (document.getElementById('user-profile')) return;
 
-  // Create sign out button
-  const signOutBtn = document.createElement('button');
-  signOutBtn.id = 'signout-btn';
-  signOutBtn.textContent = 'Sign Out';
-  signOutBtn.style.cssText = `
+  // Get user display info
+  const userEmail = currentUser?.email || 'User';
+  const userName = currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.name || userEmail.split('@')[0];
+
+  // Create profile container
+  const profileContainer = document.createElement('div');
+  profileContainer.id = 'user-profile';
+  profileContainer.style.cssText = `
     position: absolute;
-    top: 20px;
-    right: 20px;
+    top: 16px;
+    right: 16px;
+    font-family: 'DM Sans', sans-serif;
+  `;
+
+  // Create profile button
+  const profileBtn = document.createElement('button');
+  profileBtn.id = 'profile-btn';
+  profileBtn.style.cssText = `
+    display: flex;
+    align-items: center;
+    gap: 8px;
     padding: 6px 12px;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 500;
     background-color: #f5f3ef;
     color: #111;
     border: none;
@@ -150,12 +163,90 @@ function addSignOutButton() {
     transition: all 0.2s ease;
   `;
 
+  // User avatar (first letter)
+  const avatar = document.createElement('span');
+  avatar.style.cssText = `
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #8B4513;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+  `;
+  avatar.textContent = userName.charAt(0).toUpperCase();
+
+  // Display name
+  const nameSpan = document.createElement('span');
+  nameSpan.textContent = userName;
+  nameSpan.style.maxWidth = '100px';
+  nameSpan.style.overflow = 'hidden';
+  nameSpan.style.textOverflow = 'ellipsis';
+  nameSpan.style.whiteSpace = 'nowrap';
+
+  // Dropdown arrow
+  const arrow = document.createElement('span');
+  arrow.innerHTML = '▼';
+  arrow.style.fontSize = '8px';
+
+  profileBtn.appendChild(avatar);
+  profileBtn.appendChild(nameSpan);
+  profileBtn.appendChild(arrow);
+
+  // Create dropdown menu
+  const dropdown = document.createElement('div');
+  dropdown.id = 'profile-dropdown';
+  dropdown.style.cssText = `
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    min-width: 200px;
+    display: none;
+    z-index: 1000;
+    overflow: hidden;
+  `;
+
+  // User info section
+  const userInfo = document.createElement('div');
+  userInfo.style.cssText = `
+    padding: 12px 16px;
+    border-bottom: 1px solid #eee;
+  `;
+  userInfo.innerHTML = `
+    <div style="font-weight: 600; font-size: 13px; color: #111;">${userName}</div>
+    <div style="font-size: 11px; color: #666; margin-top: 2px;">${userEmail}</div>
+  `;
+
+  // Sign out button
+  const signOutBtn = document.createElement('button');
+  signOutBtn.textContent = 'Sign Out';
+  signOutBtn.style.cssText = `
+    width: 100%;
+    padding: 10px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    background: none;
+    color: #111;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    font-family: 'DM Sans', sans-serif;
+    transition: background 0.2s ease;
+  `;
+
   signOutBtn.addEventListener('mouseenter', () => {
-    signOutBtn.style.backgroundColor = '#ede9e3';
+    signOutBtn.style.backgroundColor = '#f5f3ef';
   });
 
   signOutBtn.addEventListener('mouseleave', () => {
-    signOutBtn.style.backgroundColor = '#f5f3ef';
+    signOutBtn.style.backgroundColor = 'transparent';
   });
 
   signOutBtn.addEventListener('click', async () => {
@@ -169,8 +260,35 @@ function addSignOutButton() {
     }
   });
 
+  dropdown.appendChild(userInfo);
+  dropdown.appendChild(signOutBtn);
+
+  // Toggle dropdown
+  profileBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isVisible = dropdown.style.display === 'block';
+    dropdown.style.display = isVisible ? 'none' : 'block';
+  });
+
+  // Hover effects for profile button
+  profileBtn.addEventListener('mouseenter', () => {
+    profileBtn.style.backgroundColor = '#ede9e3';
+  });
+
+  profileBtn.addEventListener('mouseleave', () => {
+    profileBtn.style.backgroundColor = '#f5f3ef';
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', () => {
+    dropdown.style.display = 'none';
+  });
+
+  profileContainer.appendChild(profileBtn);
+  profileContainer.appendChild(dropdown);
+
   document.querySelector('.container').style.position = 'relative';
-  document.querySelector('.container').appendChild(signOutBtn);
+  document.querySelector('.container').appendChild(profileContainer);
 }
 
 // Get the current tab's URL
@@ -271,7 +389,9 @@ async function handleSendClick() {
     url: currentUrl,
     workflow: currentWorkflow,
     requestId: requestId,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    user_id: currentUser?.id || null,
+    user_email: currentUser?.email || null
   };
 
   try {

@@ -1,8 +1,8 @@
 # Project Status
 
-**Last Updated:** November 17, 2025
-**Version:** 1.1
-**Status:** ✅ Core features complete with UI polish, planning auth
+**Last Updated:** November 18, 2025
+**Version:** 1.2
+**Status:** ✅ Authentication implemented, testing in progress
 
 ---
 
@@ -11,174 +11,80 @@
 | Component | Status | Notes |
 |-----------|--------|-------|
 | Chrome Extension | ✅ Working | All 3 workflows enabled |
-| Clay Integration | ✅ Working | Direct webhook connections |
-| Supabase Database | 🟡 Partial | 1 of 3 tables exists |
-| Realtime Updates | ✅ Working | For contact info workflow |
-| Search History | ✅ Working | Workflow-specific history |
+| Clay Integration | 🟡 Needs Update | Needs service_role key + user_id |
+| Supabase Database | 🟡 Partial | Only enriched_data has RLS |
+| Realtime Updates | ✅ Working | For enriched_data |
+| Search History | ✅ Working | Workflow-specific |
 | UI/Design | ✅ Complete | Custom dropdown, brown theme |
-| Authentication | 🔵 Planned | Supabase Auth design phase |
+| Authentication | ✅ Working | Email + Google OAuth |
 
 ---
 
-## ✅ What's Working
+## 🔐 Authentication Status
 
-### Chrome Extension Core
-- [x] Extension loads without errors
-- [x] Manifest V3 configuration
-- [x] Custom popup UI with brown-tinted theme
-- [x] Current URL capture from active tab
-- [x] ThekilnLogoRounded.png as extension icon
-- [x] Custom dropdown (replaced native select)
-- [x] Rounded corners throughout UI
-- [x] Custom scrollbar styling
+### ✅ Complete
 
-### UI/UX Enhancements (Recent)
-- [x] Brown hue applied to backgrounds (#faf9f7, #fffefb, #f5f3ef)
-- [x] Custom dropdown with rounded options (8px border-radius)
-- [x] Workflow names simplified (Contact Info, Account Research, Lead Research)
-- [x] Labels match header styling (15px, font-weight 700)
-- [x] Scrollbar styling matches UI (light gray, rounded)
-- [x] Main container has rounded corners (12px)
-- [x] Compact spacing for better fit
+**Extension Code:**
+- Email/password sign up with confirmation
+- Email/password sign in
+- Google OAuth (chrome.identity API)
+- Password reset flow
+- Session persistence (Chrome storage)
+- Auth guard (redirect if not logged in)
+- User profile dropdown (name/email/sign out)
+- user_id included in Clay webhook requests
 
-### Data Display
-- [x] Filtered enriched data display
-  - Only shows: name, title, org, country, work_email
-  - In that specific order
-  - Applies to both results and history
-- [x] Clean field formatting (snake_case → Title Case)
+**Supabase Configuration:**
+- Email provider enabled
+- Google OAuth provider configured
+- Site URL: `https://thekilnchromeext.vercel.app`
+- Redirect URLs configured
+- RLS enabled on `enriched_data`
+- user_id column + policies on `enriched_data`
 
-### Workflows
-- [x] **Contact Info** - Fully functional
-  - Webhook: `...44b82f58-53da-4941-85fd-630f785f594d`
-  - Table: `enriched_data` ✅ Exists
-  - Realtime: ✅ Enabled
+**Verification Page (Vercel):**
+- Deployed at: `https://thekilnchromeext.vercel.app`
+- Handles email confirmation + password reset callbacks
+- Security headers configured
 
-- [x] **Account Research** - Configured, needs table
-  - Webhook: `...32f6a132-d7fd-46d8-8eae-083406dcd7fc`
-  - Table: `account_research_data` ⚠️ Needs creation
-  - Realtime: ⏳ Pending table creation
+### ⏳ Still Needed
 
-- [x] **Lead Research** - Configured, needs table
-  - Webhook: `...42e85c66-36ca-4df0-8ff2-d3e8b7b38d09`
-  - Table: `lead_research_data` ⚠️ Needs creation
-  - Realtime: ⏳ Pending table creation
-
-### Search History
-- [x] Workflow-specific history loading
-- [x] Auto-load when workflow selected
-- [x] Clear history per workflow
-- [x] Expandable result items with click
-- [x] Timestamp display (relative time)
-- [x] Filtered data fields (only relevant info)
-- [x] Smaller, more compact design
-- [x] Custom scrollbar for history
+| Task | Priority | Notes |
+|------|----------|-------|
+| Test session persistence | High | Close/reopen extension |
+| Test password reset | High | Uses Vercel page |
+| Configure Clay with service_role | High | Required for data to save |
+| Create account_research_data table | Medium | With user_id + RLS |
+| Create lead_research_data table | Medium | With user_id + RLS |
+| Enable Realtime for new tables | Medium | After creating tables |
 
 ---
 
-## 🎨 Design System
+## 🔄 Auth Flows
 
-### Color Palette
-- **Background:** #faf9f7 (warm beige)
-- **Container:** #fffefb (warm white)
-- **Cards:** #f5f3ef (light brown-gray)
-- **Hover:** #ede9e3 (darker brown)
-- **Accent:** #09f (blue)
-- **Text:** #111 (dark)
-- **Muted:** #666 (gray)
+### Email Sign Up
+1. User enters email/password → Create Account
+2. Supabase sends confirmation email
+3. User clicks link → Vercel page verifies
+4. User opens extension → Signs in
 
-### Typography
-- **Font:** DM Sans
-- **Headers:** 15px, font-weight 700
-- **Body:** 14px, font-weight 500
-- **Small:** 13px, font-weight 500
-- **Tiny:** 10-11px, font-weight 500-600
+### Email Sign In
+1. User enters email/password → Sign In
+2. Supabase validates → Session created
+3. Session saved to Chrome storage
+4. Redirect to popup.html
 
-### Border Radius
-- **Container:** 12px
-- **Inputs/Dropdowns:** 12px
-- **Options:** 8px
-- **Buttons:** 100px (pill shape)
+### Google Sign In
+1. Click "Continue with Google"
+2. Chrome identity API opens OAuth
+3. Google authenticates → Token returned
+4. Supabase creates session → Redirect to popup
 
-### Spacing
-- **Sections:** 16px margin
-- **Labels:** 8px margin-bottom
-- **Container:** 20px padding
-- **History items:** 12px padding, 10px margin
-
----
-
-## 🔧 Technical Stack
-
-### Frontend
-- Vanilla HTML/CSS/JavaScript (no frameworks)
-- Chrome Extension Manifest V3
-- Custom dropdown components (replaced native select)
-- HTML5 Canvas (for icon processing utilities)
-- DM Sans font (Google Fonts)
-
-### Backend/Database
-- **Supabase** (PostgreSQL database)
-- Supabase Realtime (WebSocket for live updates)
-- Supabase Client Library (window.supabase)
-- Tables: `enriched_data`, `account_research_data`, `lead_research_data`
-- **Auth:** Not yet implemented (planned)
-
-### External APIs
-- Clay API (3 webhook endpoints for enrichment)
-
-### Current Security
-- ⚠️ Using anonymous Supabase key (public access)
-- ⚠️ No user authentication
-- ⚠️ No Row Level Security (RLS)
-- ⚠️ All users share the same data
-
----
-
-## 🔐 Authentication Plan (Next Phase)
-
-### Architecture
-**Approach:** Supabase Auth + Row Level Security
-
-### Phase 1: Supabase Setup
-- [ ] Enable Supabase Auth
-- [ ] Configure auth providers (email/password, Google OAuth)
-- [ ] Add `user_id` column to all tables
-- [ ] Set up foreign key to `auth.users`
-- [ ] Enable Row Level Security (RLS) policies
-- [ ] Create policies: users can only see/modify their own data
-
-### Phase 2: Extension UI
-- [ ] Create login/signup screen
-- [ ] Email/password form
-- [ ] "Sign In" / "Sign Up" buttons
-- [ ] Optional: Google OAuth button
-- [ ] Forgot password flow
-- [ ] Auth state check on load
-- [ ] "Sign Out" button in main UI
-
-### Phase 3: JavaScript Implementation
-- [ ] Check for existing session on extension load
-- [ ] Store session in Chrome storage (persistent)
-- [ ] Handle session refresh
-- [ ] Redirect to login if session expired
-- [ ] Include `user_id` in all database operations
-- [ ] Filter all queries by current user
-- [ ] Handle auth errors gracefully
-
-### Phase 4: Security Hardening
-- [ ] RLS policies for all tables
-- [ ] Secure token storage in Chrome storage
-- [ ] Token refresh handling
-- [ ] Remove/rotate anonymous key
-- [ ] Audit all data access patterns
-
-### Benefits
-- Private search history per user
-- Secure data isolation
-- User tracking/analytics
-- Foundation for team features
-- Professional UX
+### Password Reset
+1. User clicks "Forgot password"
+2. Enters email → Supabase sends reset link
+3. Link goes to Vercel page
+4. User can then sign in with new password
 
 ---
 
@@ -186,221 +92,145 @@
 
 ```
 /Chrome Extension/
-├── manifest.json              ✅ Extension configuration
-├── popup.html                ✅ UI structure (custom dropdown)
-├── popup.css                 ✅ Styling (brown theme, custom components)
-├── popup.js                  ✅ Main logic (510+ lines)
-├── supabase.js               ✅ Supabase SDK
-├── ThekilnLogoRounded.png    ✅ Extension icon (all sizes)
-├── TheKilnLogo.png           ✅ Original logo
-├── icon16.png                ⚠️ Deprecated (using rounded logo)
-├── icon48.png                ⚠️ Deprecated (using rounded logo)
-├── icon128.png               ⚠️ Deprecated (using rounded logo)
-├── README.md                 ✅ Main documentation
-├── SUPABASE_GUIDE.md         ✅ Setup instructions
-└── STATUS.md                 ✅ This file
-```
-
-**Removed files:**
-- round-icons.html (temporary utility, removed)
-- create-icons.html (temporary utility, removed)
-
----
-
-## 🎯 Key Code Components
-
-### Custom Dropdown (popup.html:21-34)
-```html
-<div class="custom-select" id="workflow-select">
-  <div class="select-trigger">
-    <span class="select-value">Select a workflow</span>
-    <svg class="select-arrow">...</svg>
-  </div>
-  <div class="select-dropdown hidden">
-    <div class="select-option" data-value="get_contact_info">Contact Info</div>
-    <div class="select-option" data-value="do_account_research">Account Research</div>
-    <div class="select-option" data-value="do_lead_research">Lead Research</div>
-  </div>
-</div>
-```
-
-### Filtered Data Display (popup.js:9)
-```javascript
-// Only these fields are displayed in results and history
-const DISPLAY_FIELDS = ['name', 'title', 'org', 'country', 'work_email'];
-```
-
-### Custom Select Setup (popup.js:93-147)
-```javascript
-function setupCustomSelect() {
-  // Toggle dropdown on trigger click
-  // Handle option selection
-  // Update workflow state
-  // Close on outside click
-  // Full styling control (rounded corners)
-}
+├── manifest.json              ✅ With storage + identity permissions
+├── popup.html                 ✅ Main UI
+├── popup.css                  ✅ Brown theme styling
+├── popup.js                   ✅ Main logic + auth check + profile dropdown
+├── auth.html                  ✅ Login/signup UI
+├── auth.css                   ✅ Auth styling
+├── auth.js                    ✅ Auth logic
+├── supabase.js                ✅ Supabase SDK
+├── ThekilnLogoRounded.png     ✅ Extension icon
+├── STATUS.md                  ✅ This file
+├── SUPABASE_AUTH_SETUP.sql    ✅ Database setup script
+└── verify-page/               ✅ Email verification (deployed to Vercel)
+    ├── index.html
+    └── vercel.json
 ```
 
 ---
 
-## 🐛 Known Issues
+## 🗄️ Database Status
 
-**None currently.** All implemented features working as expected.
+### enriched_data ✅
+- user_id column added
+- RLS enabled
+- Policies created (users see only their data)
+- Realtime enabled
+
+### account_research_data ⏳
+- Table not created yet
+- SQL ready in SUPABASE_AUTH_SETUP.sql
+
+### lead_research_data ⏳
+- Table not created yet
+- SQL ready in SUPABASE_AUTH_SETUP.sql
+
+---
+
+## 🔧 Clay Integration Status
+
+**Current Issue:** Clay writes directly to Supabase with anon key, but RLS is enabled.
+
+**Solution Required:**
+1. Get service_role key from Supabase (Settings → API)
+2. Update Clay workflows to use service_role key
+3. Configure Clay to pass user_id when writing to Supabase
+
+**Workflows to Update:**
+- Contact Info → enriched_data
+- Account Research → account_research_data (after table created)
+- Lead Research → lead_research_data (after table created)
+
+---
+
+## 💰 Free Tier Limits
+
+### Supabase
+| Resource | Limit |
+|----------|-------|
+| Database | 500 MB |
+| Auth users | 50,000 MAU |
+| Emails | 4/hour per user, 100/hour total |
+| Realtime | 200 concurrent connections |
+| Projects | 2 active |
+
+### Vercel
+| Resource | Limit |
+|----------|-------|
+| Bandwidth | 100 GB/month |
+| Deployments | Unlimited |
+
+---
+
+## 🔒 Security
+
+**Extension:**
+- Session in Chrome local storage
+- Auth check on every popup load
+- user_id in all requests
+
+**Verify Page:**
+- Content Security Policy
+- XSS protection headers
+- HTTPS enforced
+- No iframe embedding
+
+**Database:**
+- Row Level Security enabled
+- Users only access their own data
 
 ---
 
 ## 📋 Next Steps (Priority Order)
 
-### Immediate Priority
-1. **Begin Authentication Implementation**
-   - [ ] Set up Supabase Auth in dashboard
-   - [ ] Design login/signup UI
-   - [ ] Implement auth flow in extension
-   - [ ] Add RLS policies
-   - [ ] Test auth integration
+### Immediate
+1. **Test session persistence** - Close/reopen extension
+2. **Test password reset** - Full flow
+3. **Update Clay** - Add service_role key + user_id handling
 
-### High Priority (After Auth)
-2. **Create Remaining Supabase Tables**
-   - [ ] Create `account_research_data` table
-   - [ ] Create `lead_research_data` table
-   - [ ] Add `user_id` to all tables
-   - [ ] Enable Realtime on both
-   - [ ] Test manual inserts with user context
+### After Clay Works
+4. **Create remaining tables** - account_research_data, lead_research_data
+5. **Enable Realtime** - For new tables
+6. **Test all workflows** - With auth + data isolation
 
-3. **Configure Clay with Auth Context**
-   - [ ] Update webhooks to include user context
-   - [ ] Set account research to POST to Supabase
-   - [ ] Set lead research to POST to Supabase
-   - [ ] Verify user_id is correctly associated
-
-4. **End-to-End Testing with Auth**
-   - [ ] Test signup/login flow
-   - [ ] Test all 3 workflows with different users
-   - [ ] Verify data isolation (users can't see each other's data)
-   - [ ] Test history persistence per user
-   - [ ] Test logout/session expiry
-
-### Medium Priority
-5. **UI Polish**
-   - [ ] Add loading skeletons
-   - [ ] Smooth animations for dropdown
-   - [ ] Error state designs
-   - [ ] Empty state illustrations
-
-6. **Performance**
-   - [ ] Pagination for history (currently limit 50)
-   - [ ] Local caching to reduce Supabase calls
-   - [ ] Optimize Realtime subscriptions
-   - [ ] Lazy load history items
-
-### Low Priority
-7. **Production Prep**
-   - [ ] Environment variable management
-   - [ ] Error logging/monitoring
-   - [ ] User documentation/onboarding
-   - [ ] Analytics integration
-   - [ ] Version management
+### Future
+7. **Multi-user testing** - Verify data isolation
+8. **Error handling review** - Edge cases
+9. **Performance optimization** - If needed
 
 ---
 
-## 🧪 Testing Status
+## 🧪 Testing Checklist
 
-| Feature | Tested | Status |
-|---------|--------|--------|
-| Extension loads | ✅ | Working |
-| URL capture | ✅ | Working |
-| Custom dropdown | ✅ | Working |
-| Workflow selection | ✅ | Working |
-| Contact Info workflow | ✅ | Working end-to-end |
-| Account Research workflow | 🟡 | Webhook configured, table needed |
-| Lead Research workflow | 🟡 | Webhook configured, table needed |
-| Search history | ✅ | Working (contact info) |
-| Clear history | ✅ | Working |
-| Filtered data display | ✅ | Working |
-| Realtime updates | ✅ | Working (contact info) |
-| Error handling | ✅ | Working |
-| UI/UX | ✅ | Polished with custom components |
-| Authentication | ⏳ | Planning phase |
+### Auth Flow ✅
+- [x] Email sign up
+- [x] Email confirmation (via Vercel)
+- [x] Email sign in
+- [x] Google OAuth sign in
+- [x] Profile dropdown shows name/email
+- [x] Sign out works
+- [ ] Password reset flow
+- [ ] Session persistence (close/reopen)
+- [ ] Invalid credentials error
 
----
-
-## 📚 Documentation Status
-
-- [x] README.md - Complete and current
-- [x] SUPABASE_GUIDE.md - Complete with table creation steps
-- [x] STATUS.md - This file (updated with latest changes)
-- [x] Code comments - Key functions documented
-- [x] Git history - Clean commits
-
-**Needs Documentation:**
-- [ ] Authentication setup guide
-- [ ] User onboarding guide
-- [ ] API documentation (if exposing)
+### Data Flow ⏳
+- [ ] Clay receives user_id
+- [ ] Clay writes with service_role key
+- [ ] Data saved with correct user_id
+- [ ] User only sees their own data
+- [ ] History loads per user
 
 ---
 
-## 🎓 For AI Editors Reading This
+## 📚 Git Repositories
 
-### Quick Context
-Chrome extension that sends LinkedIn/web URLs to Clay for enrichment. Supports 3 workflows with Supabase backend and Realtime updates. Custom UI with brown theme and rounded corners. Planning to add Supabase Auth for user isolation.
+**Chrome Extension:**
+`https://github.com/srinikesh41/clay-enrichment-chrome-extension.git`
 
-### Recent Changes (v1.1)
-- Custom dropdown component (replaced native select)
-- Brown-tinted color scheme (#faf9f7, #fffefb, #f5f3ef)
-- Filtered data display (only 5 key fields)
-- ThekilnLogoRounded.png as extension icon
-- Custom scrollbar styling
-- Compact, polished UI
-
-### What Works
-- All Chrome extension functionality
-- Contact Info workflow (complete end-to-end)
-- Custom UI components with full styling control
-- Workflow-specific search history
-- Clean, professional design
-
-### Next Major Task
-**Authentication Implementation** - Add Supabase Auth with:
-- Email/password and Google OAuth
-- Row Level Security (RLS)
-- User-specific data isolation
-- Session management in Chrome storage
-
-### Key Files to Know
-- `popup.js` - Main logic with custom dropdown and filtered display
-- `popup.css` - Brown theme, custom components, scrollbar styles
-- `popup.html` - Custom dropdown structure
-- `SUPABASE_GUIDE.md` - How to create tables (will need auth updates)
-- `manifest.json` - Uses ThekilnLogoRounded.png
-
-### Common Tasks
-- Adding a workflow: Update CLAY_WEBHOOK_URLS and SUPABASE_TABLES
-- Changing UI: Edit popup.css (custom dropdown styles at line 94+)
-- Debugging: Right-click extension icon → Inspect popup
-- Testing dropdown: Check .select-trigger, .select-dropdown, .select-option classes
+**Verify Page (Vercel):**
+`https://github.com/srinikesh41/thekilnchromeext.git`
 
 ---
 
-## 🔒 Security Notes
-
-### Current State
-- Using Supabase anonymous key (public access)
-- No authentication required
-- All users share the same data
-- No Row Level Security (RLS)
-
-### After Auth Implementation
-- User-specific data with RLS
-- Secure session management
-- Private search history
-- Potential for team/organization features
-
----
-
-**Status:** Core features complete with polished UI. Ready to implement authentication.
-
-**Current Focus:** Planning Supabase Auth implementation
-
-**Blockers:** None. Moving to auth phase.
-
-**Risk Level:** Low. Core functionality proven. Auth is additive enhancement.
+**Current Focus:** Complete auth testing, then configure Clay
