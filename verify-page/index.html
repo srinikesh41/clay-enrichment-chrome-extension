@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Verification - Clay Enrichment</title>
+
+  <!-- Security headers via meta tags -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-Frame-Options" content="DENY">
+  <meta name="referrer" content="no-referrer">
+
+  <!-- Content Security Policy -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' https://unpkg.com https://zknyztmngccsxdtiddvz.supabase.co;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    font-src 'self' https://fonts.gstatic.com;
+    connect-src 'self' https://zknyztmngccsxdtiddvz.supabase.co;
+    img-src 'self' data:;
+    frame-ancestors 'none';
+  ">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background-color: #faf9f7;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: #fffefb;
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+    }
+
+    .icon.loading {
+      background: #f5f3ef;
+    }
+
+    .icon.success {
+      background: #d4edda;
+    }
+
+    .icon.error {
+      background: #f8d7da;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #111;
+      margin-bottom: 12px;
+    }
+
+    p {
+      font-size: 14px;
+      color: #666;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #f5f3ef;
+      border-top-color: #8B4513;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      background: #8B4513;
+      color: white;
+      text-decoration: none;
+      border-radius: 100px;
+      font-weight: 600;
+      font-size: 14px;
+      transition: background 0.2s ease;
+    }
+
+    .btn:hover {
+      background: #6d360f;
+    }
+
+    .extension-id {
+      font-size: 11px;
+      color: #999;
+      margin-top: 20px;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="content">
+      <div class="icon loading">
+        <div class="spinner"></div>
+      </div>
+      <h1>Verifying...</h1>
+      <p>Please wait while we verify your email.</p>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script>
+    // Prevent multiple executions
+    let hasExecuted = false;
+
+    // Supabase configuration
+    const SUPABASE_URL = 'https://zknyztmngccsxdtiddvz.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inprbnl6dG1uZ2Njc3hkdGlkZHZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMxMjYyMDUsImV4cCI6MjA3ODcwMjIwNX0.sV11EDMAVx0hLRNYAwvYvtkjNbMAuijPmoP8QAa2tTo';
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Sanitize text to prevent XSS
+    function sanitize(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // Validate JWT token format (basic check)
+    function isValidTokenFormat(token) {
+      if (!token || typeof token !== 'string') return false;
+      // JWT has 3 parts separated by dots
+      const parts = token.split('.');
+      if (parts.length !== 3) return false;
+      // Each part should be base64
+      const base64Regex = /^[A-Za-z0-9_-]+$/;
+      return parts.every(part => base64Regex.test(part));
+    }
+
+    async function handleVerification() {
+      // Prevent multiple executions
+      if (hasExecuted) return;
+      hasExecuted = true;
+
+      const content = document.getElementById('content');
+      const hash = window.location.hash;
+
+      // Clear the hash immediately for security
+      if (hash) {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+
+      // Check if we have auth tokens in the URL
+      if (!hash || !hash.includes('access_token')) {
+        showError('Invalid verification link', 'This link appears to be invalid or expired. Please request a new verification email.');
+        return;
+      }
+
+      try {
+        // Parse the hash parameters
+        const hashParams = new URLSearchParams(hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        const type = hashParams.get('type');
+
+        // Validate token format
+        if (!accessToken || !isValidTokenFormat(accessToken)) {
+          showError('Invalid token', 'The verification token is invalid. Please request a new verification email.');
+          return;
+        }
+
+        if (refreshToken && !isValidTokenFormat(refreshToken)) {
+          showError('Invalid token', 'The verification token is malformed. Please request a new verification email.');
+          return;
+        }
+
+        // Set timeout for the request
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+        // Set the session in Supabase to verify the token
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken || ''
+        });
+
+        clearTimeout(timeoutId);
+
+        if (error) {
+          console.error('Verification error:', error);
+          showError('Verification failed', 'Unable to verify your email. The link may have expired.');
+          return;
+        }
+
+        // Success!
+        if (type === 'signup' || type === 'email_change') {
+          showSuccess('Email Verified!', 'Your email has been verified successfully. You can now open the Clay Enrichment extension and sign in.');
+        } else if (type === 'recovery') {
+          showSuccess('Password Reset', 'You can now open the Clay Enrichment extension and sign in with your new password.');
+        } else {
+          showSuccess('Success!', 'Authentication successful. You can now open the Clay Enrichment extension.');
+        }
+
+      } catch (error) {
+        console.error('Unexpected error:', error);
+        if (error.name === 'AbortError') {
+          showError('Request timeout', 'The verification request timed out. Please try again.');
+        } else {
+          showError('Something went wrong', 'An unexpected error occurred. Please try again or request a new verification email.');
+        }
+      }
+    }
+
+    function showSuccess(title, message) {
+      const content = document.getElementById('content');
+      content.innerHTML = '';
+
+      const icon = document.createElement('div');
+      icon.className = 'icon success';
+      icon.textContent = '✓';
+
+      const h1 = document.createElement('h1');
+      h1.textContent = title;
+
+      const p = document.createElement('p');
+      p.textContent = message;
+
+      const note = document.createElement('p');
+      note.style.cssText = 'font-size: 12px; color: #888;';
+      note.textContent = 'You can close this tab now.';
+
+      content.appendChild(icon);
+      content.appendChild(h1);
+      content.appendChild(p);
+      content.appendChild(note);
+    }
+
+    function showError(title, message) {
+      const content = document.getElementById('content');
+      content.innerHTML = '';
+
+      const icon = document.createElement('div');
+      icon.className = 'icon error';
+      icon.textContent = '✕';
+
+      const h1 = document.createElement('h1');
+      h1.textContent = title;
+
+      const p = document.createElement('p');
+      p.textContent = message;
+
+      content.appendChild(icon);
+      content.appendChild(h1);
+      content.appendChild(p);
+    }
+
+    // Run verification when page loads
+    handleVerification();
+  </script>
+</body>
+</html>
