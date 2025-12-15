@@ -3,6 +3,7 @@
   "name": "Clay Enrichment",
   "version": "1.1",
   "description": "Capture URLs and enrich them with Clay data",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAv6Q2dUuH4EFWRZOgvh+orAEH+zpoB2i2Q7/pwFSO9WOymrP3MUnjqnEaQRSX5r+YX04jSi+n8wTrrjQApYhIxlhuWXdyURBZ3RmTlfDFFH3ZttK8LLh+nPJzhByRVUbVSSM99KFU+IYKf9+dWAvLVHitJ1JltUJAAXPBN8Ogf2mR46aFpc+12dBC0qFv9/MgYVwyRsn6ZZMJsYG6WR66LtSYWReVc5j2lmpPblQbSLF7G1d7JsLOCCb0lI9uWEHhLNcO6tu6n/yLX6wIrCrKTGEhL4GWH6fXWYQFx8hKajkZc9jV2KLdUCuz05Avf2a9NejMMyMJpFCdy/MOJjNyuQIDAQAB",
   "permissions": [
     "activeTab",
     "storage",
