@@ -1,77 +1,97 @@
-# Clay Enrichment Chrome Extension
+# 🔥 Cooked - Clay Enrichment
 
-> Enterprise-grade Chrome extension for real-time lead enrichment and account research using Clay API integration with advanced analytics tracking and user authentication.
+A Chrome extension that enriches LinkedIn URLs using Clay and stores your data privately.
 
-[![Chrome Web Store](https://img.shields.io/badge/Chrome-Extension-green.svg)](https://chrome.google.com/webstore)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-blue.svg)](https://supabase.com)
-[![Clay API](https://img.shields.io/badge/Clay-API-orange.svg)](https://clay.com)
+## What It Does
 
-## Overview
+1. **Browse LinkedIn** - Navigate to any LinkedIn profile
+2. **Click Extension** - Open Cooked from your Chrome toolbar
+3. **Get Contact Info** - One click to enrich the profile
+4. **See Results** - Name, title, company, email instantly
 
-A production-ready Chrome extension that captures URLs from active browser tabs and enriches them with comprehensive business intelligence data through Clay's automation platform. Features real-time data synchronization, multi-workflow support, user authentication, and persistent search history.
+Your enriched data is saved and only you can see it.
 
-## Key Features
+## Features
 
-### Core Functionality
-- **Real-time URL Capture**: Automatically detects and displays the current active tab URL
-- **Multi-Workflow Support**: Three distinct enrichment workflows
-  - Contact Information Extraction
-  - Account Research & Intelligence
-  - Lead Research & Qualification
-- **Clay API Integration**: Direct webhook integration with Clay's data enrichment platform
-- **Real-time Data Sync**: Supabase Realtime for instant enriched data delivery
-- **Persistent Search History**: Workflow-specific history with expandable results
-- **Bulk History Management**: Clear all history per workflow with confirmation
+- 🔐 **Private** - Your data is yours. Other users can't see it.
+- ⚡ **Fast** - Results in seconds via Clay enrichment
+- 📝 **History** - All your past searches saved
+- 🔑 **Secure** - Email or Google sign-in
 
-### Authentication & Security
-- **Supabase Authentication**: Enterprise-grade auth backend
-- **Email/Password Authentication**: Traditional login with email verification
-- **Google OAuth 2.0**: Single sign-on with Google accounts
-- **Chrome Identity API**: Seamless OAuth flow for extensions
-- **Session Persistence**: Secure session storage in Chrome's local storage
-- **Password Reset**: Email-based password recovery
-- **Protected Routes**: Authentication guards on all pages
+## Setup
 
-### User Experience
-- **Custom Dropdown UI**: Polished custom select components
-- **Loading States**: Visual feedback during API calls
-- **Error Handling**: Comprehensive error messages and retry mechanisms
-- **Responsive Design**: Optimized for extension popup dimensions
-- **User Profile Dropdown**: Easy access to account info and sign-out
-- **Email Verification Flow**: Secure account activation process
+### 1. Install Extension
+```bash
+1. Open Chrome
+2. Go to chrome://extensions/
+3. Enable "Developer mode"
+4. Click "Load unpacked"
+5. Select this folder
+```
 
-### Data Management
-- **Supabase PostgreSQL**: Scalable cloud database
-- **Separate Tables**: Isolated data storage per workflow
-- **Request Tracking**: Unique request IDs for data correlation
-- **User Association**: All data linked to authenticated users
-- **Automatic Cleanup**: History management capabilities
+### 2. Sign In
+- Click the extension icon
+- Sign up with email or Google
+- Start enriching!
 
 ## Tech Stack
 
-### Frontend Technologies
-- **HTML5**: Semantic markup and modern web standards
-- **CSS3**: Custom styling with Google Fonts (DM Sans)
-- **Vanilla JavaScript**: No framework dependencies for lightweight performance
-- **Chrome Extensions API**: Manifest V3 compliance
-  - `chrome.tabs` - Active tab management
-  - `chrome.storage.local` - Secure local storage
-  - `chrome.identity` - OAuth integration
+- **Frontend:** Chrome Extension (Vanilla JS)
+- **Backend:** Supabase (Auth + Database + Realtime)
+- **Enrichment:** Clay (LinkedIn data extraction)
 
-### Backend & Database
-- **Supabase**: Backend-as-a-Service platform
-  - **PostgreSQL**: Relational database
-  - **Realtime**: WebSocket-based live data updates
-  - **Auth**: Complete authentication system
-  - **Row Level Security**: Data access policies
-- **Clay API**: Data enrichment webhooks
-- **RESTful Architecture**: HTTP-based webhook communication
+## How It Works
 
-### Development Tools
-- **Git**: Version control
-- **npm**: Package management
-- **Express.js**: Local development server (optional)
-- **CORS**: Cross-origin resource sharing
+```
+You → Extension → Clay → Enriches → Supabase → Extension → You
+                  ↓
+            (Gets contact info)
+```
 
-Note: Pubilc facing version - the one in production is hidden :)
+1. Extension sends LinkedIn URL to Clay with your user ID
+2. Clay extracts contact information
+3. Clay saves to your private Supabase database
+4. Extension shows you the results instantly
+5. Data is filtered by your user ID (privacy!)
+
+## Privacy
+
+- Each user gets a unique ID when they sign up
+- All enriched data is tagged with your user ID
+- Database queries only return YOUR data
+- Nobody else can see your enrichments
+
+## Documentation
+
+- **STATUS.md** - Complete system documentation
+- **SUMMARY.md** - Quick overview of the project
+- **DIAGNOSTIC_QUERIES.sql** - Debug queries
+
+## Requirements
+
+- Chrome browser
+- Clay account (for enrichment workflow)
+- Supabase account (provided in codebase)
+
+## Configuration
+
+Already configured! Just load the extension and sign in.
+
+If you need to modify:
+- Supabase: Settings in `popup.js` and `auth.js`
+- Clay: Webhook URL in `popup.js`
+
+## Support
+
+Check `STATUS.md` for:
+- Full architecture details
+- Debugging guide
+- Common issues and solutions
+
+---
+
+**Built for private, fast LinkedIn enrichment** 🚀
+
+> **Note:** This is a simplified, public-facing version of the Chrome extension. The full production version with additional features is private.
+
+
